@@ -1,0 +1,16 @@
+﻿flask
+flask-cors
+flask-socketio
+torch
+torchvision
+numpy
+opencv-python-headless
+opencv-contrib-python-headless
+onnxruntime
+tqdm
+Pillow
+gtts
+gdown
+requests
+transformers
+sentencepiece
