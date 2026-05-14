@@ -1,0 +1,10 @@
+﻿*.pt
+*.pth
+models/
+__pycache__/
+*.pyc
+*.pyo
+.git
+.env
+*.env
+Thumbs.db
