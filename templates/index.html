@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<!--
+  ╔══════════════════════════════════════════════════════════════╗
+  ║  JISSR — DHH Communication App                             ║
+  ║  Accessible SPA for the Deaf and Hard of Hearing community. ║
+  ║                                                              ║
+  ║  Files:                                                      ║
+  ║    index.html  — Structure & semantics (you are here)        ║
+  ║    style.css   — Theming, layout, animations                 ║
+  ║    script.js   — SPA routing, interactions, logic            ╚══════════════════════════════════════════════════════════════╝
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="JISSR — A communication bridge for the Deaf and Hard of Hearing community." />
+  <meta name="theme-color" content="#0b0f1a" />
+  <title>JISSR</title>
+
+  <!-- Google Fonts: Plus Jakarta Sans (display) + DM Sans (body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+
+<body>
+  <!-- Skip link: keyboard accessibility to bypass nav -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- ═════════════════════════════════════════════════════════════
+       APP ROOT
+  ══════════════════════════════════════════════════════════════ -->
+  <div id="app" class="app">
+
+    <!-- ──────────────────────────────────────────────────────────
+         APP HEADER — Hidden on login. Updated by JS per page.
+    ─────────────────────────────────────────────────────────────→ -->
+    <header class="app-header" id="app-header" role="banner" hidden>
+      <div class="header-inner">
+        <div class="brand">
+          <span class="brand-icon" aria-hidden="true">🤟</span>
+          <span class="brand-name">JIS<strong>SR</strong></span>
+        </div>
+        <h1 class="page-heading" id="page-heading" aria-live="polite">Sign to Speech</h1>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <!-- Server connection status -->
+          <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);" id="srvStatus" aria-live="polite">
+            <span id="srvDot" style="width:7px;height:7px;border-radius:50%;background:var(--text-muted);display:inline-block;flex-shrink:0;"></span>
+            <span id="srvLbl">Offline</span>
+          </div>
+          <button class="icon-btn" id="header-theme-btn" aria-label="Toggle dark or light theme">
+            <span class="theme-icon" aria-hidden="true">🌙</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ──────────────────────────────────────────────────────────
+         MAIN CONTENT — All pages rendered here; JS toggles them
+    ──────────────────────────────────────────────────────────── -->
+    <main id="main-content" class="main-content" role="main">
+
+      <!-- ════════════════════════════════════════════════════════
+           PAGE 1 · LOGIN
+      ════════════════════════════════════════════════════════ -->
+      <section id="login-page" class="page active" aria-labelledby="login-heading" role="region">
+
+        <!-- Decorative background: grid + animated blobs -->
+        <div class="login-bg" aria-hidden="true">
+          <div class="login-blob lb--1"></div>
+          <div class="login-blob lb--2"></div>
+          <div class="login-blob lb--3"></div>
+          <div class="login-grid"></div>
+        </div>
+
+        <!-- ── Login Card ── -->
+        <article class="login-card" aria-labelledby="login-heading">
+
+          <!-- Brand mark -->
+          <div class="login-brand" aria-hidden="true">
+            <span class="login-brand-icon">🤟</span>
+            <span class="login-brand-pulse"></span>
+          </div>
+
+          <h2 id="login-heading" class="login-title">
+            Welcome to <span class="accent-text">JISSR</span>
+          </h2>
+          <p class="login-subtitle">جِسر — Bridging every conversation, visually, instantly.</p>
+
+          <!-- Login form -->
+          <form class="login-form" id="login-form" novalidate aria-label="Login form">
+            <div class="form-group">
+              <label class="form-label" for="email-input">Email address</label>
+              <input class="form-input" id="email-input" type="email"
+                placeholder="you@example.com" autocomplete="email" aria-required="true" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="password-input">Password</label>
+              <div class="input-with-action">
+                <input class="form-input" id="password-input" type="password"
+                  placeholder="••••••••" autocomplete="current-password" aria-required="true" />
+                <button type="button" class="input-eye-btn" id="toggle-password"
+                  aria-label="Show or hide password">👁</button>
+              </div>
+            </div>
+            <a href="#" class="forgot-link" tabindex="0">Forgot password?</a>
+            <button type="submit" class="btn btn--primary btn--full" id="login-btn">Log In</button>
+          </form>
+
+          <!-- Divider -->
+          <div class="or-divider" role="separator">
+            <span aria-hidden="true"></span><span class="or-text">or continue with</span><span aria-hidden="true"></span>
+          </div>
+
+          <!-- Social logins -->
+          <div class="social-btns" role="group" aria-label="Social sign-in options">
+            <button class="btn btn--social" id="google-btn" aria-label="Sign in with Google">
+              <!-- Google 'G' icon (inline SVG, no external dependency) -->
+              <svg class="social-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="#EA4335" d="M5.27 9.76A7.08 7.08 0 0 1 12 4.9c1.69 0 3.22.6 4.42 1.58L19.9 3C17.78 1.14 15.05 0 12 0 7.27 0 3.2 2.7 1.24 6.65l4.03 3.11Z"/>
+                <path fill="#34A853" d="M16.04 18.01c-1.09.7-2.47 1.08-4.04 1.08A7.08 7.08 0 0 1 5.27 14.24L1.23 17.35A11.97 11.97 0 0 0 12 24c2.93 0 5.73-1.04 7.83-3l-3.79-2.99Z"/>
+                <path fill="#4285F4" d="M19.83 21A11.97 11.97 0 0 0 24 12c0-.71-.11-1.47-.27-2.18H12v4.64h6.44c-.32 1.56-1.17 2.77-2.4 3.56L19.83 21Z"/>
+                <path fill="#FBBC05" d="M5.27 14.24A7.12 7.12 0 0 1 4.91 12c0-.78.12-1.53.36-2.24L1.24 6.65A11.95 11.95 0 0 0 0 12c0 1.92.45 3.73 1.23 5.35l4.04-3.11Z"/>
+              </svg>
+              Sign in with Google
+            </button>
+            <button class="btn btn--social" id="apple-btn" aria-label="Sign in with Apple">
+              <svg class="social-icon" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11Z"/>
+              </svg>
+              Sign in with Apple
+            </button>
+          </div>
+
+          <!-- ★ GUEST MODE — Highest visual prominence, emergency access ★ -->
+          <div class="guest-block">
+            <p class="guest-prompt">
+              <strong>Need to communicate right now?</strong>
+            </p>
+            <button class="btn btn--guest btn--full" id="guest-btn"
+              aria-label="Continue as guest, no login required. Tap for immediate access.">
+              <span aria-hidden="true">⚡</span>
+              CONTINUE AS GUEST
+            </button>
+            <p class="guest-note">No account needed · Full features · Private session</p>
+          </div>
+
+          <p class="signup-prompt">Don't have an account? <a href="#" class="text-link">Sign up free</a></p>
+        </article>
+      </section>
+      <!-- /login-page -->
+
+
+      <!-- ════════════════════════════════════════════════════════
+           PAGE 2 · SIGN TO SPEECH
+      ════════════════════════════════════════════════════════ -->
+      <section id="sign-to-speech-page" class="page" aria-labelledby="s2s-sr-heading" role="region">
+        <h2 id="s2s-sr-heading" class="sr-only">Sign to Speech — Camera Recording</h2>
+
+        <!-- 2-column: camera col (left/top) + output panel (right/bottom) -->
+        <div class="s2s-layout">
+
+          <!-- ── Camera Column ── -->
+          <div class="s2s-cam-col">
+
+            <div class="viewfinder" id="viewfinder" role="img"
+              aria-label="Camera viewfinder — position your hands within the frame to begin signing">
+
+              <!-- Real camera feed sits above the guide (z-index 1) -->
+              <video id="videoEl" autoplay playsinline muted
+                style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);z-index:1;"
+                aria-hidden="true"></video>
+              <!-- Skeleton overlay above video (z-index 2) -->
+              <canvas id="canvasEl"
+                style="position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);pointer-events:none;z-index:2;"
+                aria-hidden="true"></canvas>
+              <span class="infer-ring" id="inferRing" aria-hidden="true"
+                style="position:absolute;top:14px;right:14px;width:9px;height:9px;border-radius:50%;background:var(--color-accent);opacity:0;z-index:6;pointer-events:none;"></span>
+
+              <span class="vf-corner vf-corner--tl" aria-hidden="true"></span>
+              <span class="vf-corner vf-corner--tr" aria-hidden="true"></span>
+              <span class="vf-corner vf-corner--bl" aria-hidden="true"></span>
+              <span class="vf-corner vf-corner--br" aria-hidden="true"></span>
+              <span class="vf-scanline" aria-hidden="true"></span>
+              <span class="vf-dotgrid" aria-hidden="true"></span>
+
+              <div class="vf-guide" id="vf-guide">
+                <div class="vf-guide-icon" aria-hidden="true">🤲</div>
+                <p class="vf-guide-title">Position your hands in the frame</p>
+                <p class="vf-guide-sub">Front camera · OSL · HD</p>
+              </div>
+
+              <div class="vf-badge vf-rec-badge" id="rec-badge" aria-live="assertive" hidden>
+                <span class="rec-dot" aria-hidden="true"></span>
+                <span>REC</span>
+                <span class="rec-timer" id="rec-timer">00:00</span>
+              </div>
+              <div class="vf-badge vf-quality-badge" id="camBadge">HD</div>
+
+              <!-- Slim translation bar — just current word; detail is in the output panel -->
+              <div class="translation-overlay" id="translation-overlay" aria-live="polite" aria-atomic="true">
+                <div class="tl-header">
+                  <span class="tl-label">Live Translation</span>
+                  <span class="live-indicator" id="live-indicator" aria-hidden="true">
+                    <span class="live-dot"></span>
+                    <span class="live-ring live-ring--1"></span>
+                    <span class="live-ring live-ring--2"></span>
+                  </span>
+                </div>
+                <p class="tl-text" id="tl-text">Waiting for sign input&#8230;</p>
+              </div>
+            </div>
+            <!-- /viewfinder -->
+
+            <!-- Action Bar -->
+            <div class="action-bar" role="toolbar" aria-label="Recording controls">
+              <div class="action-col">
+                <label class="btn btn--action" for="video-upload" title="Upload video">
+                  <span class="btn-action-icon" aria-hidden="true">&#128193;</span>
+                  <span class="btn-action-label">Upload</span>
+                </label>
+                <input type="file" id="video-upload" accept="video/*" class="sr-only"
+                  aria-label="Choose a video file to upload and analyse"
+                  onchange="handleFile(event)" />
+              </div>
+              <div class="action-col action-col--record">
+                <button class="record-btn" id="record-btn"
+                  aria-label="Start recording" aria-pressed="false">
+                  <span class="record-inner" aria-hidden="true"></span>
+                  <span class="record-ring record-ring--1" aria-hidden="true"></span>
+                  <span class="record-ring record-ring--2" aria-hidden="true"></span>
+                </button>
+                <span class="action-label" id="record-label" aria-live="polite">Record</span>
+              </div>
+              <div class="action-col">
+                <button class="btn btn--action" id="flip-btn" aria-label="Flip camera">
+                  <span class="btn-action-icon" aria-hidden="true">&#128260;</span>
+                  <span class="btn-action-label">Flip Cam</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Upload progress -->
+            <div id="upProg" style="display:none;padding:10px 20px;background:var(--bg-surface);border-top:1px solid var(--border-subtle);">
+              <div id="upLbl" style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;">Processing&#8230;</div>
+              <div style="height:4px;background:var(--bg-elevated);border-radius:4px;overflow:hidden;">
+                <div id="upFill" style="height:100%;width:0%;background:linear-gradient(90deg,var(--color-accent),#4dabff);border-radius:4px;transition:width 0.3s;"></div>
+              </div>
+            </div>
+
+          </div>
+          <!-- /s2s-cam-col -->
+
+          <!-- ── Output Panel: AI model results + history ── -->
+          <div class="s2s-output-panel" role="complementary" aria-label="AI model output">
+
+            <!-- Header row: label + Auto-Speak toggle -->
+            <div class="op-header">
+              <div class="op-header-left">
+                <span class="op-section-label">AI Output</span>
+                <span class="op-live-dot" id="op-dot" aria-hidden="true"></span>
+              </div>
+              <!-- Auto-Speak: fires ElevenLabs TTS immediately on each new result -->
+              <label class="toggle-wrap op-autospeak" for="auto-speak"
+                title="Speak each new sign via ElevenLabs TTS immediately">
+                <span class="toggle-text-label" style="font-size:12px;">Auto&#8209;Speak</span>
+                <div class="toggle-track" role="switch" aria-checked="false"
+                  aria-label="Automatically speak each new sign using ElevenLabs TTS">
+                  <input type="checkbox" id="auto-speak" class="toggle-input" />
+                  <span class="toggle-knob" aria-hidden="true"></span>
+                </div>
+              </label>
+            </div>
+
+            <!-- Auto-speak status (shows ElevenLabs activity) -->
+            <div class="op-autospeak-status" id="autospeak-status" aria-live="polite"></div>
+
+            <!-- Top prediction card: Arabic sign name + English translation -->
+            <div class="op-top-card" id="op-top-card" aria-live="polite" aria-label="Top prediction">
+              <div class="op-top-main">
+                <div class="op-top-name" id="op-top-name">&#8212;</div>
+                <div class="op-top-en"   id="op-top-en">English translation</div>
+              </div>
+              <button class="op-speak-btn" id="play-btn"
+                aria-label="Speak current result via ElevenLabs TTS">
+                <div class="play-waveform" id="play-waveform" aria-hidden="true">
+                  <span class="pw-bar" style="--i:1"></span>
+                  <span class="pw-bar" style="--i:2"></span>
+                  <span class="pw-bar" style="--i:3"></span>
+                  <span class="pw-bar" style="--i:4"></span>
+                  <span class="pw-bar" style="--i:5"></span>
+                </div>
+                <span id="play-icon">&#9654;</span>
+                <span id="play-label" class="sr-only">Play</span>
+              </button>
+            </div>
+
+            <!-- Top-5 predictions -->
+            <div class="op-section-hdr">
+              <span class="op-section-label">Top 5 Predictions</span>
+            </div>
+            <div class="op-top5" id="op-top5" aria-live="polite" aria-label="Top 5 sign predictions">
+              <div class="op-skel-row"></div>
+              <div class="op-skel-row" style="opacity:.5"></div>
+              <div class="op-skel-row" style="opacity:.25"></div>
+            </div>
+
+            <!-- History -->
+            <div class="op-section-hdr" style="border-top:1px solid var(--border-subtle);">
+              <span class="op-section-label">History</span>
+              <button class="op-clear-btn" onclick="clearOutputHistory()"
+                aria-label="Clear recognition history">Clear</button>
+            </div>
+            <div class="op-hist-list" id="op-hist-list" aria-live="polite" aria-label="Recognition history">
+              <div class="op-hist-empty" id="op-hist-empty">Recognition history will appear here</div>
+            </div>
+
+          </div>
+          <!-- /s2s-output-panel -->
+
+        </div>
+        <!-- /s2s-layout -->
+
+      </section>
+
+
+      <!-- ════════════════════════════════════════════════════════
+           PAGE 3 · SPEECH TO SIGN
+      ════════════════════════════════════════════════════════ -->
+      <section id="speech-to-sign-page" class="page" aria-labelledby="sp2s-sr-heading" role="region">
+        <h2 id="sp2s-sr-heading" class="sr-only">Speech to Sign — Avatar and Input</h2>
+
+        <!-- ── TOP HALF: 3D Avatar / Sign Language Video ── -->
+        <div class="avatar-panel" role="region" aria-label="Sign language avatar display">
+          <div class="avatar-display" id="avatarWrap"
+            aria-label="3D signing avatar — shows sign language output">
+
+            <!-- Decorative grid overlay -->
+            <div class="avatar-grid-overlay" aria-hidden="true"></div>
+
+            <!-- ★ REAL SKELETON CANVAS (OSL backend renders here) ★ -->
+            <canvas id="avatarCanvas"
+              style="position:absolute;inset:0;width:100%;height:100%;display:block;z-index:3;"
+              aria-label="Animated signing avatar skeleton"></canvas>
+
+            <!-- CSS fallback avatar (shown when no real animation data) -->
+            <div class="avatar-figure" id="avatar-figure" aria-hidden="true">
+              <div class="av-head" id="av-head">🙂</div>
+              <div class="av-body">
+                <div class="av-arm av-arm--l" id="av-arm-l">🤚</div>
+                <div class="av-arm av-arm--r" id="av-arm-r">🤚</div>
+              </div>
+            </div>
+
+            <!-- Idle state (hidden once signing starts) -->
+            <div id="avatarIdle"
+              style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;z-index:4;pointer-events:none;">
+              <span style="font-size:52px;opacity:.2">🧑</span>
+              <p style="font-size:13px;color:var(--text-muted);text-align:center;">Signs will appear here — type below</p>
+            </div>
+
+            <!-- Avatar status overlay -->
+            <div class="avatar-status-bar" id="avatar-status" aria-live="polite">
+              <span class="av-status-dot" id="av-status-dot" aria-hidden="true"></span>
+              <span id="av-status-text">Idle — provide input below</span>
+            </div>
+          </div>
+
+          <!-- ── Playback Speed Controls ── -->
+          <div class="speed-bar" role="group" aria-label="Signing playback speed">
+            <span class="speed-bar-label">Speed:</span>
+            <div class="speed-pills" role="radiogroup" aria-label="Speed selection">
+              <button class="speed-pill" data-speed="0.5" aria-pressed="false" aria-label="0.5x speed">0.5×</button>
+              <button class="speed-pill active" data-speed="1" aria-pressed="true" aria-label="1x speed, selected">1×</button>
+              <button class="speed-pill" data-speed="1.5" aria-pressed="false" aria-label="1.5x speed">1.5×</button>
+            </div>
+            <!-- Hidden range input keeps avSpeed accessible to JS -->
+            <input type="range" id="avSpeed" min="0.3" max="3" step="0.1" value="1.0"
+              style="display:none;" aria-hidden="true"/>
+          </div>
+
+          <!-- Word queue: highlights current word being signed -->
+          <div id="wordQueue"
+            style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:36px;padding:8px 14px;background:var(--bg-elevated);border-top:1px solid var(--border-subtle);"
+            aria-live="polite" aria-label="Word signing queue">
+          </div>
+        </div>
+        <!-- /avatar-panel -->
+
+        <!-- ── BOTTOM HALF: Input ── -->
+        <div class="input-panel" role="region" aria-label="Hearing person input">
+
+          <!-- Input mode tab bar -->
+          <div class="input-tabs" role="tablist" aria-label="Choose input method">
+            <button class="tab-btn active" role="tab" aria-selected="true"
+              data-tab="mic" id="tab-mic" aria-controls="tabpanel-mic">🎤 Microphone</button>
+            <button class="tab-btn" role="tab" aria-selected="false"
+              data-tab="kbd" id="tab-kbd" aria-controls="tabpanel-kbd">⌨️ Keyboard</button>
+          </div>
+
+          <!-- Tab: Microphone -->
+          <div class="tab-panel" id="tabpanel-mic" role="tabpanel" aria-labelledby="tab-mic">
+            <div class="mic-section">
+              <!-- ★ LARGE MIC BUTTON ★ -->
+              <button class="mic-btn" id="mic-btn"
+                aria-label="Tap to activate microphone and listen to hearing person"
+                aria-pressed="false">
+                <span class="mic-ring mr--1" aria-hidden="true"></span>
+                <span class="mic-ring mr--2" aria-hidden="true"></span>
+                <span class="mic-ring mr--3" aria-hidden="true"></span>
+                <span class="mic-glyph" aria-hidden="true">🎤</span>
+              </button>
+              <p class="mic-status-text" id="mic-status" aria-live="polite">Tap to listen</p>
+
+              <!-- Animated waveform (shown when mic active) -->
+              <div class="waveform" id="waveform" aria-label="Sound waveform — microphone is active" hidden>
+                <span class="wv-bar" style="--d:0.00s;--h:35%"></span>
+                <span class="wv-bar" style="--d:0.08s;--h:70%"></span>
+                <span class="wv-bar" style="--d:0.16s;--h:55%"></span>
+                <span class="wv-bar" style="--d:0.24s;--h:90%"></span>
+                <span class="wv-bar" style="--d:0.32s;--h:60%"></span>
+                <span class="wv-bar" style="--d:0.40s;--h:40%"></span>
+                <span class="wv-bar" style="--d:0.48s;--h:80%"></span>
+                <span class="wv-bar" style="--d:0.56s;--h:65%"></span>
+                <span class="wv-bar" style="--d:0.64s;--h:45%"></span>
+                <span class="wv-bar" style="--d:0.72s;--h:75%"></span>
+                <span class="wv-bar" style="--d:0.80s;--h:50%"></span>
+                <span class="wv-bar" style="--d:0.88s;--h:85%"></span>
+                <span class="wv-bar" style="--d:0.96s;--h:30%"></span>
+                <span class="wv-bar" style="--d:1.04s;--h:95%"></span>
+              </div>
+
+              <!-- STT language selector -->
+              <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+                <label style="font-size:12px;color:var(--text-secondary);" for="sttLang">Language:</label>
+                <select id="sttLang" class="sg-select" style="width:auto;min-height:36px;font-size:13px;">
+                  <option value="eng">English</option>
+                  <option value="ara">العربية</option>
+                </select>
+              </div>
+
+              <!-- STT result box -->
+              <div id="sttBox" aria-live="polite"
+                style="width:100%;padding:10px 12px;background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:10px;font-size:14px;color:var(--text-secondary);min-height:48px;display:flex;align-items:center;margin-top:4px;">
+                Recognised speech will appear here…
+              </div>
+
+              <!-- Use recognised text in avatar -->
+              <button class="btn btn--outline btn--full" id="btnUseText"
+                onclick="useSTTText()" disabled
+                style="margin-top:4px;">
+                Use in Avatar →
+              </button>
+            </div>
+          </div>
+
+          <!-- Tab: Keyboard -->
+          <div class="tab-panel hidden" id="tabpanel-kbd" role="tabpanel" aria-labelledby="tab-kbd">
+            <div class="kbd-section">
+              <label class="form-label" for="avText">Type what the hearing person says:</label>
+              <textarea class="form-input form-textarea" id="avText"
+                placeholder="Hello, how can I help you today?…"
+                rows="3" aria-label="Type speech to convert to sign language"></textarea>
+              <button class="btn btn--primary btn--full" id="btnSign" onclick="startSigning()">
+                <span aria-hidden="true">🤟</span> Translate to Sign Language
+              </button>
+            </div>
+          </div>
+
+          <!-- Recognised text / last output -->
+          <div class="heard-box" id="heard-box" aria-live="polite" aria-label="Recognised speech">
+            <span class="heard-label">Heard: </span>
+            <span class="heard-text" id="heard-text">—</span>
+          </div>
+
+        </div>
+        <!-- /input-panel -->
+      </section>
+      <!-- /speech-to-sign-page -->
+
+
+      <!-- ════════════════════════════════════════════════════════
+           PAGE 4 · SETTINGS
+      ════════════════════════════════════════════════════════ -->
+      <section id="settings-page" class="page" aria-labelledby="settings-sr-heading" role="region">
+        <h2 id="settings-sr-heading" class="sr-only">Application Settings</h2>
+
+        <div class="settings-scroll">
+
+          <!-- ── Settings Group: Language ── -->
+          <div class="settings-group" role="group" aria-labelledby="lg-lang">
+            <div class="sg-header">
+              <span class="sg-icon" aria-hidden="true">🌐</span>
+              <h3 class="sg-title" id="lg-lang">Language Preferences</h3>
+            </div>
+
+            <!-- OSL only — no other dialects supported -->
+            <div class="sg-row sg-row--between">
+              <div class="sg-label">
+                Sign Language
+                <span class="sg-desc">Omani Sign Language — the only supported dialect</span>
+              </div>
+              <span class="sg-value"
+                style="background:var(--color-accent-dim);color:var(--color-accent);padding:6px 14px;border-radius:20px;font-weight:700;font-size:13px;border:1px solid var(--color-accent);white-space:nowrap;">
+                OSL
+              </span>
+            </div>
+          </div>
+          <!-- /language -->
+
+          <!-- ── Settings Group: Audio & Video ── -->
+          <div class="settings-group" role="group" aria-labelledby="lg-av">
+            <div class="sg-header">
+              <span class="sg-icon" aria-hidden="true">🎥</span>
+              <h3 class="sg-title" id="lg-av">Audio &amp; Video</h3>
+            </div>
+
+            <div class="sg-row">
+              <label class="sg-label" for="cam-qual-sel">
+                Camera Quality
+                <span class="sg-desc">Higher quality uses more battery &amp; data</span>
+              </label>
+              <select class="sg-select" id="cam-qual-sel">
+                <option value="480p">480p — Standard</option>
+                <option value="720p" selected>720p — HD (Recommended)</option>
+                <option value="1080p">1080p — Full HD</option>
+                <option value="4k">4K — Ultra HD</option>
+              </select>
+            </div>
+          </div>
+          <!-- /audio video -->
+
+          <!-- ── Settings Group: Accessibility ── -->
+          <div class="settings-group" role="group" aria-labelledby="lg-a11y">
+            <div class="sg-header">
+              <span class="sg-icon" aria-hidden="true">♿</span>
+              <h3 class="sg-title" id="lg-a11y">Accessibility</h3>
+            </div>
+
+            <!-- Text Size Slider -->
+            <div class="sg-row sg-row--col">
+              <label class="sg-label" for="text-size-sl">
+                Text Size
+                <span class="sg-desc">Translation text size across the app</span>
+              </label>
+              <div class="slider-row">
+                <span class="slider-sm-a" aria-hidden="true">A</span>
+                <input type="range" class="sg-slider" id="text-size-sl"
+                  min="14" max="28" value="18" step="2"
+                  aria-label="Text size" aria-valuemin="14" aria-valuemax="28" aria-valuenow="18" />
+                <span class="slider-lg-a" aria-hidden="true">A</span>
+                <output class="slider-out" id="ts-out" for="text-size-sl" aria-live="polite">18px</output>
+              </div>
+            </div>
+
+            <!-- Haptic Feedback -->
+            <div class="sg-row sg-row--between">
+              <div class="sg-label">
+                Haptic Feedback
+                <span class="sg-desc">Vibrate on recording events and errors</span>
+              </div>
+              <label class="toggle-wrap" for="haptic-tog" aria-label="Toggle haptic feedback">
+                <div class="toggle-track" role="switch" aria-checked="true">
+                  <input type="checkbox" id="haptic-tog" class="toggle-input" checked />
+                  <span class="toggle-knob" aria-hidden="true"></span>
+                </div>
+              </label>
+            </div>
+
+            <!-- Visual Audio Cues -->
+            <div class="sg-row sg-row--between">
+              <div class="sg-label">
+                Visual Audio Cues
+                <span class="sg-desc">Show waveforms &amp; pulse indicators for all audio</span>
+              </div>
+              <label class="toggle-wrap" for="cues-tog" aria-label="Toggle visual audio cues">
+                <div class="toggle-track" role="switch" aria-checked="true">
+                  <input type="checkbox" id="cues-tog" class="toggle-input" checked />
+                  <span class="toggle-knob" aria-hidden="true"></span>
+                </div>
+              </label>
+            </div>
+
+            <!-- High Contrast Mode -->
+            <div class="sg-row sg-row--between">
+              <div class="sg-label">
+                High Contrast Mode
+                <span class="sg-desc">Increases border and text contrast</span>
+              </div>
+              <label class="toggle-wrap" for="contrast-tog" aria-label="Toggle high contrast mode">
+                <div class="toggle-track" role="switch" aria-checked="false">
+                  <input type="checkbox" id="contrast-tog" class="toggle-input" />
+                  <span class="toggle-knob" aria-hidden="true"></span>
+                </div>
+              </label>
+            </div>
+          </div>
+          <!-- /accessibility -->
+
+          <!-- ── Settings Group: Appearance / Theme ── -->
+          <div class="settings-group" role="group" aria-labelledby="lg-theme">
+            <div class="sg-header">
+              <span class="sg-icon" aria-hidden="true">🎨</span>
+              <h3 class="sg-title" id="lg-theme">Appearance</h3>
+            </div>
+
+            <!-- Theme segmented control -->
+            <div class="sg-row sg-row--between">
+              <div class="sg-label">
+                App Theme
+                <span class="sg-desc">Switch between dark and light mode</span>
+              </div>
+              <div class="seg-ctrl" role="radiogroup" aria-label="App theme" id="theme-seg">
+                <button class="seg-btn active" data-theme="dark" role="radio" aria-checked="true">🌙 Dark</button>
+                <button class="seg-btn" data-theme="light" role="radio" aria-checked="false">☀️ Light</button>
+              </div>
+            </div>
+
+            <!-- Accent color picker -->
+            <div class="sg-row sg-row--col">
+              <div class="sg-label">
+                Accent Color
+                <span class="sg-desc">App-wide primary highlight color</span>
+              </div>
+              <div class="accent-picker" role="radiogroup" aria-label="Choose accent color" id="accent-picker">
+                <button class="accent-swatch active" data-color="#0dff8c" style="--sw:#0dff8c" aria-label="Green (default)" aria-pressed="true"></button>
+                <button class="accent-swatch" data-color="#00cfff" style="--sw:#00cfff" aria-label="Cyan" aria-pressed="false"></button>
+                <button class="accent-swatch" data-color="#ff6b35" style="--sw:#ff6b35" aria-label="Orange" aria-pressed="false"></button>
+                <button class="accent-swatch" data-color="#c084fc" style="--sw:#c084fc" aria-label="Purple" aria-pressed="false"></button>
+                <button class="accent-swatch" data-color="#f472b6" style="--sw:#f472b6" aria-label="Pink" aria-pressed="false"></button>
+                <button class="accent-swatch" data-color="#facc15" style="--sw:#facc15" aria-label="Yellow" aria-pressed="false"></button>
+              </div>
+            </div>
+          </div>
+          <!-- /appearance -->
+
+          <!-- ── Settings Group: ElevenLabs (TTS + STT) ── -->
+          <div class="settings-group" role="group" aria-labelledby="lg-el">
+            <div class="sg-header">
+              <span class="sg-icon" aria-hidden="true">🔊</span>
+              <h3 class="sg-title" id="lg-el">ElevenLabs Voice API</h3>
+            </div>
+            <div class="sg-row sg-row--col">
+              <label class="sg-label" for="elApiKey">
+                API Key
+                <span class="sg-desc">Required for natural TTS and speech recognition. Get one free at elevenlabs.io</span>
+              </label>
+              <input class="form-input" id="elApiKey" type="password"
+                placeholder="sk-xxxxxxxxxxxxxxxx" autocomplete="off"
+                oninput="saveELSettings()" dir="ltr" style="font-size:13px;min-height:40px;"/>
+            </div>
+            <div class="sg-row">
+              <label class="sg-label" for="elVoiceId">
+                Voice
+                <span class="sg-desc">ElevenLabs voice for TTS output</span>
+              </label>
+              <select class="sg-select" id="elVoiceId" onchange="saveELSettings()">
+                <option value="21m00Tcm4TlvDq8ikWAM">Rachel (Multilingual)</option>
+                <option value="EXAVITQu4vr4xnSDxMaL">Bella</option>
+                <option value="AZnzlk1XvdvUeBnXmlld">Domi</option>
+                <option value="TxGEqnHWrfWFTfGW9XjX">Josh</option>
+                <option value="custom">Custom ID →</option>
+              </select>
+            </div>
+            <div class="sg-row sg-row--col" id="elVoiceCustomRow" style="display:none;">
+              <label class="sg-label" for="elVoiceCustom">Custom Voice ID</label>
+              <input class="form-input" id="elVoiceCustom" type="text"
+                placeholder="Enter ElevenLabs voice ID…" dir="ltr"
+                oninput="saveELSettings()" style="font-size:13px;min-height:40px;"/>
+            </div>
+            <div class="sg-row">
+              <label class="sg-label" for="elModel">
+                Model
+                <span class="sg-desc">Multilingual v2 is best for non-English</span>
+              </label>
+              <select class="sg-select" id="elModel" onchange="saveELSettings()">
+                <option value="eleven_multilingual_v2">Multilingual v2</option>
+                <option value="eleven_turbo_v2_5">Turbo v2.5 (faster)</option>
+                <option value="eleven_monolingual_v1">Monolingual v1</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- ── Settings Group: About ── -->
+          <div class="settings-group settings-group--about" role="group" aria-labelledby="lg-about">
+            <div class="sg-header">
+              <span class="sg-icon" aria-hidden="true">ℹ️</span>
+              <h3 class="sg-title" id="lg-about">About</h3>
+            </div>
+            <div class="sg-row sg-row--between">
+              <span class="sg-label">Version</span><span class="sg-value">v2.5.0</span>
+            </div>
+            <div class="sg-row sg-row--between">
+              <span class="sg-label">Model Engine</span><span class="sg-value">JISSR‑v1</span>
+            </div>
+            <div class="sg-row sg-row--between">
+              <span class="sg-label">Available Signs</span>
+              <span class="sg-value" id="avWordCount">—</span>
+            </div>
+            <div class="sg-row">
+              <button class="btn btn--outline btn--full" id="logout-btn">Sign Out</button>
+            </div>
+          </div>
+
+        </div>
+        <!-- /settings-scroll -->
+      </section>
+      <!-- /settings-page -->
+
+    </main>
+    <!-- /main-content -->
+
+
+    <!-- ──────────────────────────────────────────────────────────
+         BOTTOM NAVIGATION — JS toggles hidden attr after login
+    ──────────────────────────────────────────────────────────── -->
+    <nav class="bottom-nav" id="bottom-nav" role="navigation"
+      aria-label="Main application navigation" hidden>
+
+      <button class="nav-item" data-target="sign-to-speech-page"
+        aria-label="Sign to Speech page" aria-current="false">
+        <span class="nav-icon" aria-hidden="true">📹</span>
+        <span class="nav-label">Sign</span>
+      </button>
+
+      <button class="nav-item" data-target="speech-to-sign-page"
+        aria-label="Speech to Sign page" aria-current="false">
+        <span class="nav-icon" aria-hidden="true">🔊</span>
+        <span class="nav-label">Speech</span>
+      </button>
+
+      <button class="nav-item" data-target="settings-page"
+        aria-label="Settings page" aria-current="false">
+        <span class="nav-icon" aria-hidden="true">⚙️</span>
+        <span class="nav-label">Settings</span>
+      </button>
+
+    </nav>
+
+    <!-- Toast notification (aria-live region) -->
+    <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true" aria-hidden="true"></div>
+
+  </div>
+  <!-- /app -->
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
