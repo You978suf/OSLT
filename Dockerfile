@@ -23,10 +23,6 @@ COPY . .
 
 RUN mkdir -p models
 
-EXPOSE 5000
+EXPOSE 10000
 
-<<<<<<< HEAD
 CMD ["python", "app.py"]
-=======
-CMD ["python", "app.py"]
->>>>>>> 1bd6f80c5220bd4f15d2ff553eee65cd5bb5cba0
