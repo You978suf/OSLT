@@ -7,4 +7,8 @@ __pycache__/
 .git
 .env
 *.env
+<<<<<<< HEAD
 Thumbs.db
+=======
+Thumbs.db
+>>>>>>> 1bd6f80c5220bd4f15d2ff553eee65cd5bb5cba0
