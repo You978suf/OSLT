@@ -4,7 +4,6 @@ flask-socketio
 torch
 torchvision
 einops
-decord
 numpy
 opencv-python-headless
 opencv-contrib-python-headless
