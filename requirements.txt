@@ -18,3 +18,5 @@ transformers
 sentencepiece
 decord
 azure-communication-email
+azure-identity
+azure-storage-blob
