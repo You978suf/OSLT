@@ -1,204 +1,519 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
-<!--
-  ╔══════════════════════════════════════════════════════════════╗
-  ║  JISSR — DHH Communication App                             ║
-  ║  Accessible SPA for the Deaf and Hard of Hearing community. ║
-  ║                                                              ║
-  ║  Files:                                                      ║
-  ║    index.html  — Structure & semantics (you are here)        ║
-  ║    style.css   — Theming, layout, animations                 ║
-  ║    script.js   — SPA routing, interactions, logic            ╚══════════════════════════════════════════════════════════════╝
--->
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="JISSR — A communication bridge for the Deaf and Hard of Hearing community." />
-  <meta name="theme-color" content="#0b0f1a" />
-  <title>JISSR</title>
-
-  <!-- Google Fonts: Plus Jakarta Sans (display) + DM Sans (body) -->
+  <meta name="description" content="JISSR — A communication bridge for the Deaf and Hard of Hearing community in Oman." />
+  <meta name="theme-color" content="#0b5fae" />
+  <title>JISSR — جِسر · Omani Sign Language Translator</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}" />
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='logo.png') }}" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
-
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=4.2" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    /* Safety net: guarantee bright page even if main CSS fails to load */
+    html, body { background: #ffffff !important; color: #0d1726 !important; }
+    body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    .form-input, .form-textarea, .form-select {
+      background: #ffffff !important;
+      color: #0d1726 !important;
+      border: 2px solid #0b5fae !important;
+      border-radius: 8px !important;
+      min-height: 48px !important;
+      padding: 12px 14px !important;
+      width: 100%;
+    }
+  </style>
+  <script>
+    /* Run BEFORE main script: clear any old dark-theme storage and force bright */
+    (function () {
+      try {
+        document.documentElement.setAttribute('data-theme', 'light');
+        const stored = localStorage.getItem('jissr-theme');
+        if (stored === 'dark') localStorage.removeItem('jissr-theme');
+      } catch (_) {}
+    })();
+  </script>
 </head>
 
 <body>
-  <!-- Skip link: keyboard accessibility to bypass nav -->
   <a href="#main-content" class="skip-link">Skip to main content</a>
 
-  <!-- ═════════════════════════════════════════════════════════════
-       APP ROOT
-  ══════════════════════════════════════════════════════════════ -->
   <div id="app" class="app">
 
-    <!-- ──────────────────────────────────────────────────────────
-         APP HEADER — Hidden on login. Updated by JS per page.
-    ─────────────────────────────────────────────────────────────→ -->
-    <header class="app-header" id="app-header" role="banner" hidden>
+    <!-- Oman flag accent strip -->
+    <div class="gov-strip" aria-hidden="true"></div>
+
+    <!-- ════ APP HEADER (formal gov-style banner) ════ -->
+    <header class="app-header" id="app-header" role="banner">
       <div class="header-inner">
-        <div class="brand">
-          <span class="brand-icon" aria-hidden="true">🤟</span>
-          <span class="brand-name">JIS<strong>SR</strong></span>
-        </div>
-        <h1 class="page-heading" id="page-heading" aria-live="polite">Sign to Speech</h1>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <!-- Server connection status -->
-          <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);" id="srvStatus" aria-live="polite">
-            <span id="srvDot" style="width:7px;height:7px;border-radius:50%;background:var(--text-muted);display:inline-block;flex-shrink:0;"></span>
+
+        <!-- Brand -->
+        <a href="#" class="brand" id="brand-link" aria-label="JISSR home">
+          <img class="brand-mark brand-mark--img" src="{{ url_for('static', filename='logo.png') }}?v=4.2" alt="JISSR logo" width="48" height="48" style="width:48px;height:48px;border-radius:50%;object-fit:contain;background:#fff;padding:2px;" />
+          <span class="brand-text">
+            <span class="brand-name">JISSR</span>
+            <span class="brand-ar">جِسر</span>
+          </span>
+        </a>
+
+        <!-- Primary nav (hidden on landing/login) -->
+        <nav class="app-nav" id="app-nav" aria-label="Primary" hidden>
+          <a href="#" class="app-nav-link" data-target="sign-to-speech-page" aria-current="false">Sign → Speech</a>
+          <a href="#" class="app-nav-link" data-target="speech-to-sign-page" aria-current="false">Speech → Sign</a>
+          <a href="#" class="app-nav-link" data-target="history-page" aria-current="false">History</a>
+          <a href="#" class="app-nav-link" data-target="settings-page" aria-current="false">Settings</a>
+        </nav>
+
+        <!-- Right cluster -->
+        <div class="header-right">
+
+          <!-- Public CTA (only shown on landing) -->
+          <div class="header-public" id="header-public">
+            <button class="btn btn--ghost btn--sm" id="header-signin-btn">Sign in</button>
+            <button class="btn btn--primary btn--sm" id="header-register-btn">Get started</button>
+          </div>
+
+          <!-- Server status (authenticated) -->
+          <div id="srvStatus" aria-live="polite" hidden>
+            <span id="srvDot"></span>
             <span id="srvLbl">Offline</span>
           </div>
-          <button class="icon-btn" id="header-theme-btn" aria-label="Toggle dark or light theme">
-            <span class="theme-icon" aria-hidden="true">🌙</span>
+
+          <!-- User chip (authenticated) -->
+          <div class="header-user" id="header-user" hidden>
+            <div class="header-user-avatar" id="header-avatar">U</div>
+            <span id="header-username">User</span>
+          </div>
+
+          <button class="icon-btn header-logout-btn" id="header-logout-btn" aria-label="Sign out" hidden>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </button>
+
+          <button class="menu-toggle" id="menu-toggle" aria-label="Menu" aria-expanded="false">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           </button>
         </div>
       </div>
+
+      <!-- Mobile drawer -->
+      <div class="mobile-nav-drawer" id="mobile-nav-drawer"></div>
     </header>
 
-    <!-- ──────────────────────────────────────────────────────────
-         MAIN CONTENT — All pages rendered here; JS toggles them
-    ──────────────────────────────────────────────────────────── -->
+
+    <!-- ════ MAIN ════ -->
     <main id="main-content" class="main-content" role="main">
 
-      <!-- ════════════════════════════════════════════════════════
-           PAGE 1 · LOGIN
-      ════════════════════════════════════════════════════════ -->
-      <section id="login-page" class="page active" aria-labelledby="login-heading" role="region">
+      <!-- ════════════════════════════════════════════════════
+           PAGE: LANDING (public)
+      ════════════════════════════════════════════════════ -->
+      <section id="landing-page" class="page active" aria-labelledby="landing-heading" role="region">
+        <h2 id="landing-heading" class="sr-only">Welcome to JISSR</h2>
 
-        <!-- Decorative background: grid + animated blobs -->
-        <div class="login-bg" aria-hidden="true">
-          <div class="login-blob lb--1"></div>
-          <div class="login-blob lb--2"></div>
-          <div class="login-blob lb--3"></div>
-          <div class="login-grid"></div>
-        </div>
-
-        <!-- ── Login Card ── -->
-        <article class="login-card" aria-labelledby="login-heading">
-
-          <!-- Brand mark -->
-          <div class="login-brand" aria-hidden="true">
-            <span class="login-brand-icon">🤟</span>
-            <span class="login-brand-pulse"></span>
-          </div>
-
-          <h2 id="login-heading" class="login-title">
-            Welcome to <span class="accent-text">JISSR</span>
-          </h2>
-          <p class="login-subtitle">جِسر — Bridging every conversation, visually, instantly.</p>
-
-          <!-- Login form -->
-          <form class="login-form" id="login-form" novalidate aria-label="Login form">
-            <div class="form-group">
-              <label class="form-label" for="email-input">Email address</label>
-              <input class="form-input" id="email-input" type="email"
-                placeholder="you@example.com" autocomplete="email" aria-required="true" />
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="password-input">Password</label>
-              <div class="input-with-action">
-                <input class="form-input" id="password-input" type="password"
-                  placeholder="••••••••" autocomplete="current-password" aria-required="true" />
-                <button type="button" class="input-eye-btn" id="toggle-password"
-                  aria-label="Show or hide password">👁</button>
+        <!-- Hero -->
+        <div class="landing-hero">
+          <div class="landing-hero-inner">
+            <div>
+              <span class="landing-eyebrow">Made in Oman · Real-time</span>
+              <h1 class="landing-headline">
+                Breaking <span class="landing-headline-accent">communication barriers</span> across Oman.
+              </h1>
+              <p class="landing-sub">
+                JISSR (جِسر) is a real-time Omani Sign Language translator. AI-powered camera recognition,
+                natural Arabic &amp; English speech output, and a 3D signing avatar — all built for Oman's
+                Deaf and Hard of Hearing community.
+              </p>
+              <div class="landing-actions">
+                <button class="btn btn--primary btn--lg" id="landing-register-btn">
+                  <span class="btn-text">Create your account</span>
+                  <svg class="btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </button>
+                <button class="btn btn--outline btn--lg" id="landing-signin-btn">
+                  Sign in
+                </button>
+              </div>
+              <div class="landing-trust">
+                <span class="landing-trust-item">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  AI-powered
+                </span>
+                <span class="landing-trust-item">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  Bilingual EN / AR
+                </span>
+                <span class="landing-trust-item">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  Built for OSL
+                </span>
+                <span class="landing-trust-item">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  Private &amp; secure
+                </span>
               </div>
             </div>
-            <a href="#" class="forgot-link" tabindex="0">Forgot password?</a>
-            <button type="submit" class="btn btn--primary btn--full" id="login-btn">Log In</button>
-          </form>
 
-          <!-- Divider -->
-          <div class="or-divider" role="separator">
-            <span aria-hidden="true"></span><span class="or-text">or continue with</span><span aria-hidden="true"></span>
+            <!-- Visual: official logo + floating feature cards -->
+            <div class="landing-visual" aria-hidden="true">
+              <img class="landing-hero-logo" src="{{ url_for('static', filename='logo.png') }}?v=4.2" alt="JISSR official logo" width="340" height="340" style="width:340px;height:340px;object-fit:contain;display:block;margin:0 auto;" />
+              <div class="landing-card landing-card-1">
+                <div class="landing-card-icon lc-icon-red">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+                </div>
+                <div class="landing-card-title">Sign → Speech</div>
+                <div class="landing-card-desc">Camera reads OSL signs and speaks them aloud.</div>
+              </div>
+              <div class="landing-card landing-card-2">
+                <div class="landing-card-icon lc-icon-green">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                </div>
+                <div class="landing-card-title">Speech → Sign</div>
+                <div class="landing-card-desc">3D avatar signs back in real time.</div>
+              </div>
+            </div>
           </div>
+        </div>
 
-          <!-- Social logins -->
-          <div class="social-btns" role="group" aria-label="Social sign-in options">
-            <button class="btn btn--social" id="google-btn" aria-label="Sign in with Google">
-              <!-- Google 'G' icon (inline SVG, no external dependency) -->
-              <svg class="social-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path fill="#EA4335" d="M5.27 9.76A7.08 7.08 0 0 1 12 4.9c1.69 0 3.22.6 4.42 1.58L19.9 3C17.78 1.14 15.05 0 12 0 7.27 0 3.2 2.7 1.24 6.65l4.03 3.11Z"/>
-                <path fill="#34A853" d="M16.04 18.01c-1.09.7-2.47 1.08-4.04 1.08A7.08 7.08 0 0 1 5.27 14.24L1.23 17.35A11.97 11.97 0 0 0 12 24c2.93 0 5.73-1.04 7.83-3l-3.79-2.99Z"/>
-                <path fill="#4285F4" d="M19.83 21A11.97 11.97 0 0 0 24 12c0-.71-.11-1.47-.27-2.18H12v4.64h6.44c-.32 1.56-1.17 2.77-2.4 3.56L19.83 21Z"/>
-                <path fill="#FBBC05" d="M5.27 14.24A7.12 7.12 0 0 1 4.91 12c0-.78.12-1.53.36-2.24L1.24 6.65A11.95 11.95 0 0 0 0 12c0 1.92.45 3.73 1.23 5.35l4.04-3.11Z"/>
-              </svg>
-              Sign in with Google
-            </button>
-            <button class="btn btn--social" id="apple-btn" aria-label="Sign in with Apple">
-              <svg class="social-icon" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
-                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11Z"/>
-              </svg>
-              Sign in with Apple
-            </button>
+        <!-- Features -->
+        <div class="landing-features">
+          <div class="section-heading">
+            <span class="section-eyebrow">Key Features</span>
+            <h2 class="section-title">Everything you need to communicate</h2>
+            <p class="section-sub">A complete two-way bridge between sign language and spoken language — for classrooms, clinics, and conversations.</p>
           </div>
-
-          <!-- ★ GUEST MODE — Highest visual prominence, emergency access ★ -->
-          <div class="guest-block">
-            <p class="guest-prompt">
-              <strong>Need to communicate right now?</strong>
-            </p>
-            <button class="btn btn--guest btn--full" id="guest-btn"
-              aria-label="Continue as guest, no login required. Tap for immediate access.">
-              <span aria-hidden="true">⚡</span>
-              CONTINUE AS GUEST
-            </button>
-            <p class="guest-note">No account needed · Full features · Private session</p>
+          <div class="feature-grid">
+            <div class="feature-card">
+              <div class="feature-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+              </div>
+              <h3 class="feature-title">Live Sign Recognition</h3>
+              <p class="feature-desc">UniSign-powered model recognises Omani Sign Language from your camera, with predictions in milliseconds.</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <h3 class="feature-title">Skeletal Avatar</h3>
+              <p class="feature-desc">A 3D pose-driven avatar signs back what the hearing person says, with adjustable playback speed.</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+              </div>
+              <h3 class="feature-title">Natural Voice Output</h3>
+              <p class="feature-desc">ElevenLabs-powered text-to-speech and speech-to-text — clear Arabic and English, low latency.</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <h3 class="feature-title">Private &amp; Secure</h3>
+              <p class="feature-desc">Your account, history, and settings live in a MySQL database you control. No third-party tracking, ever.</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </div>
+              <h3 class="feature-title">Personal History</h3>
+              <p class="feature-desc">Every translation is saved to your account, ready to revisit, copy, or replay whenever you need.</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              </div>
+              <h3 class="feature-title">Personalised Experience</h3>
+              <p class="feature-desc">Theme, text size, accent colour, haptic feedback — make JISSR comfortable for the way you use it.</p>
+            </div>
           </div>
+        </div>
 
-          <p class="signup-prompt">Don't have an account? <a href="#" class="text-link">Sign up free</a></p>
-        </article>
+        <!-- CTA -->
+        <div class="landing-cta">
+          <div class="landing-cta-card">
+            <h2>Ready to break the silence?</h2>
+            <p>Create your free account now to start translating Omani Sign Language.</p>
+            <div class="landing-actions" style="justify-content: center;">
+              <button class="btn btn--primary btn--lg" id="cta-register-btn">
+                <span class="btn-text">Get started — it's free</span>
+                <svg class="btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </button>
+              <button class="btn btn--outline btn--lg" id="cta-signin-btn">
+                Already have an account?
+              </button>
+            </div>
+          </div>
+        </div>
       </section>
-      <!-- /login-page -->
 
 
-      <!-- ════════════════════════════════════════════════════════
-           PAGE 2 · SIGN TO SPEECH
-      ════════════════════════════════════════════════════════ -->
+      <!-- ════════════════════════════════════════════════════
+           PAGE: AUTH (login / register)
+      ════════════════════════════════════════════════════ -->
+      <section id="login-page" class="page" aria-labelledby="auth-heading" role="region">
+        <h2 id="auth-heading" class="sr-only">Sign in or create an account</h2>
+
+        <div class="auth-layout">
+
+          <!-- LEFT — Brand panel -->
+          <aside class="auth-brand" aria-hidden="true">
+            <div class="auth-brand-logo">
+              <img class="auth-brand-mark auth-brand-mark--img" src="{{ url_for('static', filename='logo.png') }}?v=4.2" alt="JISSR logo" width="72" height="72" style="width:72px;height:72px;border-radius:50%;object-fit:contain;background:#fff;padding:4px;" />
+              <div>
+                <span class="auth-brand-name">JISSR</span>
+                <span class="auth-brand-ar">جِسر</span>
+              </div>
+            </div>
+
+            <div class="auth-brand-content">
+              <h2 class="auth-brand-headline">Welcome to a bridge for every conversation.</h2>
+              <p class="auth-brand-tag">
+                JISSR translates Omani Sign Language to speech and back again — in real time, with care
+                designed for Oman's Deaf and Hard of Hearing community.
+              </p>
+
+              <div class="auth-brand-features">
+                <div class="auth-brand-feature">
+                  <div class="auth-brand-feature-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+                  </div>
+                  <div class="auth-brand-feature-text">
+                    <strong>AI sign recognition</strong>
+                    <span>UniSign + RTMPose · real-time</span>
+                  </div>
+                </div>
+                <div class="auth-brand-feature">
+                  <div class="auth-brand-feature-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                  </div>
+                  <div class="auth-brand-feature-text">
+                    <strong>Natural EN / AR speech</strong>
+                    <span>ElevenLabs voice quality</span>
+                  </div>
+                </div>
+                <div class="auth-brand-feature">
+                  <div class="auth-brand-feature-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  </div>
+                  <div class="auth-brand-feature-text">
+                    <strong>Private &amp; secure</strong>
+                    <span>Your data, your device</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="auth-brand-footer">
+              <div class="auth-brand-footer-strip"><span></span><span></span><span></span></div>
+              <span>Proudly built in Oman · جِسر للترجمة</span>
+            </div>
+          </aside>
+
+          <!-- RIGHT — Form -->
+          <div class="auth-form-side">
+            <div class="auth-form-wrap">
+
+              <div class="auth-form-heading">
+                <h2 id="auth-form-heading">Welcome back</h2>
+                <p id="auth-form-sub">Sign in to your JISSR account to continue.</p>
+              </div>
+
+              <!-- Tabs -->
+              <div class="auth-tabs" role="tablist" aria-label="Authentication">
+                <button class="auth-tab active" role="tab" data-auth="login" aria-selected="true" id="tab-login">Sign In</button>
+                <button class="auth-tab" role="tab" data-auth="register" aria-selected="false" id="tab-register">Create Account</button>
+              </div>
+
+              <!-- ── LOGIN PANEL ── -->
+              <div class="auth-panel active" id="auth-panel-login" role="tabpanel" aria-labelledby="tab-login">
+                <form class="login-form" id="login-form" novalidate aria-label="Sign-in form">
+
+                  <div class="form-group">
+                    <label class="form-label" for="email-input">Email address</label>
+                    <input class="form-input" id="email-input" type="email"
+                      placeholder="you@example.com" autocomplete="email" required
+                      aria-describedby="email-error" />
+                    <span class="field-error" id="email-error" role="alert"></span>
+                  </div>
+
+                  <div class="form-group">
+                    <div class="form-label-row">
+                      <label class="form-label" for="password-input">Password</label>
+                      <a href="#" class="forgot-link">Forgot password?</a>
+                    </div>
+                    <div class="input-wrapper input-with-action">
+                      <input class="form-input" id="password-input" type="password"
+                        placeholder="Enter your password" autocomplete="current-password" required
+                        aria-describedby="login-pw-error" />
+                      <button type="button" class="input-eye-btn" id="toggle-password" aria-label="Show or hide password">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      </button>
+                    </div>
+                    <span class="field-error" id="login-pw-error" role="alert"></span>
+                  </div>
+
+                  <button type="submit" class="btn btn--primary btn--full lc-submit-btn" id="login-btn">
+                    <span class="btn-text">Sign In</span>
+                    <svg class="btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                    <span class="btn-spinner" aria-hidden="true"></span>
+                  </button>
+                </form>
+              </div>
+
+              <!-- ── REGISTER PANEL ── -->
+              <div class="auth-panel" id="auth-panel-register" role="tabpanel" aria-labelledby="tab-register">
+                <form class="login-form" id="register-form" novalidate aria-label="Create account form">
+
+              <!-- Full Name -->
+              <div class="form-group">
+                <label class="form-label" for="reg-name">Full name</label>
+                <div class="input-wrapper">
+                  <input class="form-input" id="reg-name" type="text"
+                    placeholder="Your full name" autocomplete="name" required minlength="2"
+                    aria-describedby="reg-name-error" />
+                </div>
+                <span class="field-error" id="reg-name-error" role="alert"></span>
+              </div>
+
+              <!-- Email -->
+              <div class="form-group">
+                <label class="form-label" for="reg-email">Email address</label>
+                <div class="input-wrapper">
+                  <input class="form-input" id="reg-email" type="email"
+                    placeholder="you@example.com" autocomplete="email" required
+                    aria-describedby="reg-email-error" />
+                </div>
+                <span class="field-error" id="reg-email-error" role="alert"></span>
+              </div>
+
+              <!-- Password (keep as-is, structure is correct) -->
+              <div class="form-group">
+                <label class="form-label" for="reg-password">
+                  Password
+                  <span class="field-hint">Min 8 chars · upper + number</span>
+                </label>
+                <div class="input-wrapper input-with-action">
+                  <input class="form-input" id="reg-password" type="password"
+                    placeholder="Create a strong password" autocomplete="new-password" required minlength="8"
+                    aria-describedby="reg-pw-error reg-pw-strength-label" />
+                  <button type="button" class="input-eye-btn" id="toggle-reg-password" aria-label="Show or hide password">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                  </button>
+                </div>
+                <div class="pw-strength-wrap" id="pw-strength-wrap" style="display:none;" aria-hidden="true">
+                  <div class="pw-strength-track"><div class="pw-strength-bar" id="pw-strength-bar"></div></div>
+                  <span class="pw-strength-label" id="reg-pw-strength-label" aria-live="polite"></span>
+                </div>
+                <span class="field-error" id="reg-pw-error" role="alert"></span>
+              </div>
+
+              <!-- Confirm Password (keep as-is) -->
+              <div class="form-group">
+                <label class="form-label" for="reg-confirm-password">Confirm password</label>
+                <div class="input-wrapper input-with-action">
+                  <input class="form-input" id="reg-confirm-password" type="password"
+                    placeholder="Repeat your password" autocomplete="new-password" required
+                    aria-describedby="reg-confirm-error" />
+                  <button type="button" class="input-eye-btn" id="toggle-reg-confirm" aria-label="Show or hide confirm password">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                  </button>
+                </div>
+                <span class="field-error" id="reg-confirm-error" role="alert"></span>
+              </div>
+
+                  <button type="submit" class="btn btn--primary btn--full lc-submit-btn" id="register-btn">
+                    <span class="btn-text">Create Account</span>
+                    <svg class="btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                    <span class="btn-spinner" aria-hidden="true"></span>
+                  </button>
+
+                  <p class="lc-terms">
+                    By creating an account you agree to our
+                    <a href="/terms" class="lc-link" target="_blank" rel="noopener">Terms of Service</a> and
+                    <a href="/privacy" class="lc-link" target="_blank" rel="noopener">Privacy Policy</a>.
+                  </p>
+                </form>
+              </div>
+
+              <!-- OR divider -->
+              <div class="or-divider" role="separator">
+                <span></span><span class="or-text">or</span><span></span>
+              </div>
+
+              <!-- Social row -->
+              <div class="social-btns" role="group" aria-label="Social sign-in">
+                <button class="btn btn--social" id="google-btn" aria-label="Continue with Google">
+                  <svg class="btn-google-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  </svg>
+                  <span>Continue with Google</span>
+                </button>
+              </div>
+
+              <!-- Google Identity Services is initialised from script.js using the
+                   Client ID returned by /config (which reads config.json). No
+                   hard-coded client_id here. -->
+
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+
+      <!-- ════════════════════════════════════════════════════
+           PAGE: SIGN-TO-SPEECH (protected)
+      ════════════════════════════════════════════════════ -->
       <section id="sign-to-speech-page" class="page" aria-labelledby="s2s-sr-heading" role="region">
-        <h2 id="s2s-sr-heading" class="sr-only">Sign to Speech — Camera Recording</h2>
+        <h2 id="s2s-sr-heading" class="sr-only">Sign to Speech</h2>
 
-        <!-- 2-column: camera col (left/top) + output panel (right/bottom) -->
+        <div class="page-header">
+          <span class="page-eyebrow">Live translation</span>
+          <h1 class="page-title">Sign → Speech</h1>
+          <p class="page-subtitle">Point your camera at OSL signs — JISSR speaks them aloud in real time.</p>
+        </div>
+
         <div class="s2s-layout">
 
-          <!-- ── Camera Column ── -->
+          <!-- Camera Column -->
           <div class="s2s-cam-col">
-
-            <div class="viewfinder" id="viewfinder" role="img"
-              aria-label="Camera viewfinder — position your hands within the frame to begin signing">
-
-              <!-- Real camera feed sits above the guide (z-index 1) -->
+            <div class="viewfinder" id="viewfinder" role="img" aria-label="Camera viewfinder">
               <video id="videoEl" autoplay playsinline muted
-                style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);z-index:1;"
-                aria-hidden="true"></video>
-              <!-- Skeleton overlay above video (z-index 2) -->
+                style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);z-index:1;" aria-hidden="true"></video>
               <canvas id="canvasEl"
-                style="position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);pointer-events:none;z-index:2;"
-                aria-hidden="true"></canvas>
+                style="position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);pointer-events:none;z-index:2;" aria-hidden="true"></canvas>
               <span class="infer-ring" id="inferRing" aria-hidden="true"
                 style="position:absolute;top:14px;right:14px;width:9px;height:9px;border-radius:50%;background:var(--color-accent);opacity:0;z-index:6;pointer-events:none;"></span>
-
               <span class="vf-corner vf-corner--tl" aria-hidden="true"></span>
               <span class="vf-corner vf-corner--tr" aria-hidden="true"></span>
               <span class="vf-corner vf-corner--bl" aria-hidden="true"></span>
               <span class="vf-corner vf-corner--br" aria-hidden="true"></span>
-              <span class="vf-scanline" aria-hidden="true"></span>
               <span class="vf-dotgrid" aria-hidden="true"></span>
-
               <div class="vf-guide" id="vf-guide">
                 <div class="vf-guide-icon" aria-hidden="true">🤲</div>
                 <p class="vf-guide-title">Position your hands in the frame</p>
                 <p class="vf-guide-sub">Front camera · OSL · HD</p>
               </div>
-
               <div class="vf-badge vf-rec-badge" id="rec-badge" aria-live="assertive" hidden>
                 <span class="rec-dot" aria-hidden="true"></span>
                 <span>REC</span>
                 <span class="rec-timer" id="rec-timer">00:00</span>
               </div>
               <div class="vf-badge vf-quality-badge" id="camBadge">HD</div>
-
-              <!-- Slim translation bar — just current word; detail is in the output panel -->
               <div class="translation-overlay" id="translation-overlay" aria-live="polite" aria-atomic="true">
                 <div class="tl-header">
                   <span class="tl-label">Live Translation</span>
@@ -208,143 +523,115 @@
                     <span class="live-ring live-ring--2"></span>
                   </span>
                 </div>
-                <p class="tl-text" id="tl-text">Waiting for sign input&#8230;</p>
+                <p class="tl-text" id="tl-text">Waiting for sign input…</p>
               </div>
             </div>
-            <!-- /viewfinder -->
 
-            <!-- Action Bar -->
             <div class="action-bar" role="toolbar" aria-label="Recording controls">
               <div class="action-col">
-                <label class="btn btn--action" for="video-upload" title="Upload video">
-                  <span class="btn-action-icon" aria-hidden="true">&#128193;</span>
-                  <span class="btn-action-label">Upload</span>
+                <label class="action-btn" for="video-upload" title="Upload a video" tabindex="0" role="button">
+                  <svg class="action-btn-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                  <span class="action-btn-label">Upload</span>
                 </label>
                 <input type="file" id="video-upload" accept="video/*" class="sr-only"
-                  aria-label="Choose a video file to upload and analyse"
-                  onchange="handleFile(event)" />
+                  aria-label="Choose a video file" onchange="handleFile(event)" />
               </div>
+
               <div class="action-col action-col--record">
-                <button class="record-btn" id="record-btn"
-                  aria-label="Start recording" aria-pressed="false">
+                <button class="record-btn" id="record-btn" aria-label="Start recording" aria-pressed="false">
                   <span class="record-inner" aria-hidden="true"></span>
                   <span class="record-ring record-ring--1" aria-hidden="true"></span>
                   <span class="record-ring record-ring--2" aria-hidden="true"></span>
                 </button>
                 <span class="action-label" id="record-label" aria-live="polite">Record</span>
               </div>
+
               <div class="action-col">
-                <button class="btn btn--action" id="flip-btn" aria-label="Flip camera">
-                  <span class="btn-action-icon" aria-hidden="true">&#128260;</span>
-                  <span class="btn-action-label">Flip Cam</span>
+                <button class="action-btn" id="flip-btn" aria-label="Switch camera">
+                  <svg class="action-btn-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="1 4 1 10 7 10"/>
+                    <polyline points="23 20 23 14 17 14"/>
+                    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/>
+                  </svg>
+                  <span class="action-btn-label">Flip Cam</span>
                 </button>
               </div>
             </div>
 
-            <!-- Upload progress -->
-            <div id="upProg" style="display:none;padding:10px 20px;background:var(--bg-surface);border-top:1px solid var(--border-subtle);">
-              <div id="upLbl" style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;">Processing&#8230;</div>
-              <div style="height:4px;background:var(--bg-elevated);border-radius:4px;overflow:hidden;">
-                <div id="upFill" style="height:100%;width:0%;background:linear-gradient(90deg,var(--color-accent),#4dabff);border-radius:4px;transition:width 0.3s;"></div>
+            <div id="upProg" style="display:none;padding:10px 16px;">
+              <div id="upLbl" style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;">Processing…</div>
+              <div style="height:6px;background:var(--bg-tint);border-radius:3px;overflow:hidden;">
+                <div id="upFill" style="height:100%;width:0%;border-radius:3px;transition:width 0.3s;"></div>
               </div>
             </div>
-
           </div>
-          <!-- /s2s-cam-col -->
 
-          <!-- ── Output Panel: AI model results + history ── -->
+          <!-- Output Panel -->
           <div class="s2s-output-panel" role="complementary" aria-label="AI model output">
-
-            <!-- Header row: label + Auto-Speak toggle -->
             <div class="op-header">
               <div class="op-header-left">
                 <span class="op-section-label">AI Output</span>
                 <span class="op-live-dot" id="op-dot" aria-hidden="true"></span>
               </div>
-              <!-- Auto-Speak: fires ElevenLabs TTS immediately on each new result -->
-              <label class="toggle-wrap op-autospeak" for="auto-speak"
-                title="Speak each new sign via ElevenLabs TTS immediately">
-                <span class="toggle-text-label" style="font-size:12px;">Auto&#8209;Speak</span>
-                <div class="toggle-track" role="switch" aria-checked="false"
-                  aria-label="Automatically speak each new sign using ElevenLabs TTS">
+              <label class="toggle-wrap op-autospeak" for="auto-speak" title="Auto-Speak via TTS">
+                <span class="toggle-text-label" style="font-size:12px;color:var(--text-secondary);font-weight:600;">Auto-Speak</span>
+                <div class="toggle-track" role="switch" aria-checked="false">
                   <input type="checkbox" id="auto-speak" class="toggle-input" />
                   <span class="toggle-knob" aria-hidden="true"></span>
                 </div>
               </label>
             </div>
-
-            <!-- Auto-speak status (shows ElevenLabs activity) -->
             <div class="op-autospeak-status" id="autospeak-status" aria-live="polite"></div>
-
-            <!-- Top prediction card: Arabic sign name + English translation -->
-            <div class="op-top-card" id="op-top-card" aria-live="polite" aria-label="Top prediction">
+            <div class="op-top-card" id="op-top-card" aria-live="polite">
               <div class="op-top-main">
-                <div class="op-top-name" id="op-top-name">&#8212;</div>
-                <div class="op-top-en"   id="op-top-en">English translation</div>
+                <div class="op-top-name" id="op-top-name">—</div>
+                <div class="op-top-en" id="op-top-en">English translation</div>
               </div>
-              <button class="op-speak-btn" id="play-btn"
-                aria-label="Speak current result via ElevenLabs TTS">
+              <button class="op-speak-btn" id="play-btn" aria-label="Speak current result">
                 <div class="play-waveform" id="play-waveform" aria-hidden="true">
-                  <span class="pw-bar" style="--i:1"></span>
-                  <span class="pw-bar" style="--i:2"></span>
-                  <span class="pw-bar" style="--i:3"></span>
-                  <span class="pw-bar" style="--i:4"></span>
+                  <span class="pw-bar" style="--i:1"></span><span class="pw-bar" style="--i:2"></span>
+                  <span class="pw-bar" style="--i:3"></span><span class="pw-bar" style="--i:4"></span>
                   <span class="pw-bar" style="--i:5"></span>
                 </div>
-                <span id="play-icon">&#9654;</span>
+                <span id="play-icon">▶</span>
                 <span id="play-label" class="sr-only">Play</span>
               </button>
             </div>
-
-            <!-- Top-5 predictions -->
             <div class="op-section-hdr">
               <span class="op-section-label">Top 5 Predictions</span>
             </div>
-            <div class="op-top5" id="op-top5" aria-live="polite" aria-label="Top 5 sign predictions">
+            <div class="op-top5" id="op-top5" aria-live="polite">
               <div class="op-skel-row"></div>
               <div class="op-skel-row" style="opacity:.5"></div>
               <div class="op-skel-row" style="opacity:.25"></div>
             </div>
-
-            <!-- History -->
-            <div class="op-section-hdr" style="border-top:1px solid var(--border-subtle);">
+            <div class="op-section-hdr">
               <span class="op-section-label">History</span>
-              <button class="op-clear-btn" onclick="clearOutputHistory()"
-                aria-label="Clear recognition history">Clear</button>
+              <button class="op-clear-btn" onclick="clearOutputHistory()" aria-label="Clear history">Clear</button>
             </div>
-            <div class="op-hist-list" id="op-hist-list" aria-live="polite" aria-label="Recognition history">
+            <div class="op-hist-list" id="op-hist-list" aria-live="polite">
               <div class="op-hist-empty" id="op-hist-empty">Recognition history will appear here</div>
             </div>
-
           </div>
-          <!-- /s2s-output-panel -->
-
         </div>
-        <!-- /s2s-layout -->
-
       </section>
 
 
-      <!-- ════════════════════════════════════════════════════════
-           PAGE 3 · SPEECH TO SIGN
-      ════════════════════════════════════════════════════════ -->
+      <!-- ════════════════════════════════════════════════════
+           PAGE: SPEECH-TO-SIGN (protected)
+      ════════════════════════════════════════════════════ -->
       <section id="speech-to-sign-page" class="page" aria-labelledby="sp2s-sr-heading" role="region">
-        <h2 id="sp2s-sr-heading" class="sr-only">Speech to Sign — Avatar and Input</h2>
+        <h2 id="sp2s-sr-heading" class="sr-only">Speech to Sign</h2>
 
-        <!-- ── TOP HALF: 3D Avatar / Sign Language Video ── -->
-        <div class="avatar-panel" role="region" aria-label="Sign language avatar display">
-          <div class="avatar-display" id="avatarWrap"
-            aria-label="3D signing avatar — shows sign language output">
-
-            <!-- Decorative grid overlay -->
+        <div class="avatar-panel" role="region" aria-label="Sign language avatar">
+          <div class="avatar-display" id="avatarWrap" aria-label="3D signing avatar">
             <div class="avatar-grid-overlay" aria-hidden="true"></div>
-
-            <!-- ★ REAL SKELETON CANVAS (OSL backend renders here) ★ -->
             <canvas id="avatarCanvas"
-              style="position:absolute;inset:0;width:100%;height:100%;display:block;z-index:3;"
-              aria-label="Animated signing avatar skeleton"></canvas>
-
-            <!-- CSS fallback avatar (shown when no real animation data) -->
+              style="position:absolute;inset:0;width:100%;height:100%;display:block;z-index:3;" aria-label="Signing avatar"></canvas>
             <div class="avatar-figure" id="avatar-figure" aria-hidden="true">
               <div class="av-head" id="av-head">🙂</div>
               <div class="av-body">
@@ -352,243 +639,163 @@
                 <div class="av-arm av-arm--r" id="av-arm-r">🤚</div>
               </div>
             </div>
-
-            <!-- Idle state (hidden once signing starts) -->
-            <div id="avatarIdle"
-              style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;z-index:4;pointer-events:none;">
-              <span style="font-size:52px;opacity:.2">🧑</span>
-              <p style="font-size:13px;color:var(--text-muted);text-align:center;">Signs will appear here — type below</p>
+            <div id="avatarIdle" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;z-index:4;pointer-events:none;">
+              <span style="font-size:52px;opacity:.18">🧑</span>
+              <p style="font-size:13px;color:rgba(255,255,255,.55);text-align:center;">Signs will appear here — type below</p>
             </div>
-
-            <!-- Avatar status overlay -->
             <div class="avatar-status-bar" id="avatar-status" aria-live="polite">
               <span class="av-status-dot" id="av-status-dot" aria-hidden="true"></span>
               <span id="av-status-text">Idle — provide input below</span>
             </div>
           </div>
 
-          <!-- ── Playback Speed Controls ── -->
-          <div class="speed-bar" role="group" aria-label="Signing playback speed">
-            <span class="speed-bar-label">Speed:</span>
-            <div class="speed-pills" role="radiogroup" aria-label="Speed selection">
-              <button class="speed-pill" data-speed="0.5" aria-pressed="false" aria-label="0.5x speed">0.5×</button>
-              <button class="speed-pill active" data-speed="1" aria-pressed="true" aria-label="1x speed, selected">1×</button>
-              <button class="speed-pill" data-speed="1.5" aria-pressed="false" aria-label="1.5x speed">1.5×</button>
+          <div class="speed-bar" role="group" aria-label="Playback speed">
+            <span class="speed-bar-label">Speed</span>
+            <div class="speed-pills" role="radiogroup">
+              <button class="speed-pill" data-speed="0.5" aria-pressed="false">0.5×</button>
+              <button class="speed-pill active" data-speed="1" aria-pressed="true">1×</button>
+              <button class="speed-pill" data-speed="1.5" aria-pressed="false">1.5×</button>
             </div>
-            <!-- Hidden range input keeps avSpeed accessible to JS -->
-            <input type="range" id="avSpeed" min="0.3" max="3" step="0.1" value="1.0"
-              style="display:none;" aria-hidden="true"/>
+            <input type="range" id="avSpeed" min="0.3" max="3" step="0.1" value="1.0" style="display:none;" aria-hidden="true"/>
           </div>
 
-          <!-- Word queue: highlights current word being signed -->
-          <div id="wordQueue"
-            style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:36px;padding:8px 14px;background:var(--bg-elevated);border-top:1px solid var(--border-subtle);"
-            aria-live="polite" aria-label="Word signing queue">
-          </div>
+          <div id="wordQueue" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:36px;padding:10px 14px;"
+            aria-live="polite"></div>
         </div>
-        <!-- /avatar-panel -->
 
-        <!-- ── BOTTOM HALF: Input ── -->
-        <div class="input-panel" role="region" aria-label="Hearing person input">
-
-          <!-- Input mode tab bar -->
-          <div class="input-tabs" role="tablist" aria-label="Choose input method">
-            <button class="tab-btn active" role="tab" aria-selected="true"
-              data-tab="mic" id="tab-mic" aria-controls="tabpanel-mic">🎤 Microphone</button>
-            <button class="tab-btn" role="tab" aria-selected="false"
-              data-tab="kbd" id="tab-kbd" aria-controls="tabpanel-kbd">⌨️ Keyboard</button>
+        <div class="input-panel" role="region" aria-label="Input">
+          <div class="input-tabs" role="tablist">
+            <button class="tab-btn active" role="tab" aria-selected="true" data-tab="mic" id="tab-mic" aria-controls="tabpanel-mic">🎤 Microphone</button>
+            <button class="tab-btn" role="tab" aria-selected="false" data-tab="kbd" id="tab-kbd" aria-controls="tabpanel-kbd">⌨️ Keyboard</button>
           </div>
 
-          <!-- Tab: Microphone -->
           <div class="tab-panel" id="tabpanel-mic" role="tabpanel" aria-labelledby="tab-mic">
             <div class="mic-section">
-              <!-- ★ LARGE MIC BUTTON ★ -->
-              <button class="mic-btn" id="mic-btn"
-                aria-label="Tap to activate microphone and listen to hearing person"
-                aria-pressed="false">
+              <button class="mic-btn" id="mic-btn" aria-label="Tap to activate microphone" aria-pressed="false">
                 <span class="mic-ring mr--1" aria-hidden="true"></span>
                 <span class="mic-ring mr--2" aria-hidden="true"></span>
                 <span class="mic-ring mr--3" aria-hidden="true"></span>
                 <span class="mic-glyph" aria-hidden="true">🎤</span>
               </button>
               <p class="mic-status-text" id="mic-status" aria-live="polite">Tap to listen</p>
-
-              <!-- Animated waveform (shown when mic active) -->
-              <div class="waveform" id="waveform" aria-label="Sound waveform — microphone is active" hidden>
-                <span class="wv-bar" style="--d:0.00s;--h:35%"></span>
-                <span class="wv-bar" style="--d:0.08s;--h:70%"></span>
-                <span class="wv-bar" style="--d:0.16s;--h:55%"></span>
-                <span class="wv-bar" style="--d:0.24s;--h:90%"></span>
-                <span class="wv-bar" style="--d:0.32s;--h:60%"></span>
-                <span class="wv-bar" style="--d:0.40s;--h:40%"></span>
-                <span class="wv-bar" style="--d:0.48s;--h:80%"></span>
-                <span class="wv-bar" style="--d:0.56s;--h:65%"></span>
-                <span class="wv-bar" style="--d:0.64s;--h:45%"></span>
-                <span class="wv-bar" style="--d:0.72s;--h:75%"></span>
-                <span class="wv-bar" style="--d:0.80s;--h:50%"></span>
-                <span class="wv-bar" style="--d:0.88s;--h:85%"></span>
-                <span class="wv-bar" style="--d:0.96s;--h:30%"></span>
-                <span class="wv-bar" style="--d:1.04s;--h:95%"></span>
+              <div class="waveform" id="waveform" aria-label="Microphone waveform" hidden>
+                <span class="wv-bar" style="--d:0.00s"></span><span class="wv-bar" style="--d:0.08s"></span>
+                <span class="wv-bar" style="--d:0.16s"></span><span class="wv-bar" style="--d:0.24s"></span>
+                <span class="wv-bar" style="--d:0.32s"></span><span class="wv-bar" style="--d:0.40s"></span>
+                <span class="wv-bar" style="--d:0.48s"></span><span class="wv-bar" style="--d:0.56s"></span>
+                <span class="wv-bar" style="--d:0.64s"></span><span class="wv-bar" style="--d:0.72s"></span>
+                <span class="wv-bar" style="--d:0.80s"></span><span class="wv-bar" style="--d:0.88s"></span>
               </div>
-
-              <!-- STT language selector -->
               <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
-                <label style="font-size:12px;color:var(--text-secondary);" for="sttLang">Language:</label>
+                <label style="font-size:12px;color:var(--text-secondary);font-weight:600;" for="sttLang">Language:</label>
                 <select id="sttLang" class="sg-select" style="width:auto;min-height:36px;font-size:13px;">
                   <option value="eng">English</option>
                   <option value="ara">العربية</option>
                 </select>
               </div>
-
-              <!-- STT result box -->
-              <div id="sttBox" aria-live="polite"
-                style="width:100%;padding:10px 12px;background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:10px;font-size:14px;color:var(--text-secondary);min-height:48px;display:flex;align-items:center;margin-top:4px;">
+              <div id="sttBox" aria-live="polite">
                 Recognised speech will appear here…
               </div>
-
-              <!-- Use recognised text in avatar -->
-              <button class="btn btn--outline btn--full" id="btnUseText"
-                onclick="useSTTText()" disabled
-                style="margin-top:4px;">
+              <button class="btn btn--outline btn--full" id="btnUseText" onclick="useSTTText()" disabled style="margin-top:4px;">
                 Use in Avatar →
               </button>
             </div>
           </div>
 
-          <!-- Tab: Keyboard -->
           <div class="tab-panel hidden" id="tabpanel-kbd" role="tabpanel" aria-labelledby="tab-kbd">
             <div class="kbd-section">
-              <label class="form-label" for="avText">Type what the hearing person says:</label>
-              <textarea class="form-input form-textarea" id="avText"
-                placeholder="Hello, how can I help you today?…"
-                rows="3" aria-label="Type speech to convert to sign language"></textarea>
+              <label class="form-label" for="avText">Type what the hearing person says</label>
+              <textarea class="form-input form-textarea" id="avText" placeholder="Hello, how can I help you today?…" rows="3"></textarea>
               <button class="btn btn--primary btn--full" id="btnSign" onclick="startSigning()">
                 <span aria-hidden="true">🤟</span> Translate to Sign Language
               </button>
             </div>
           </div>
 
-          <!-- Recognised text / last output -->
-          <div class="heard-box" id="heard-box" aria-live="polite" aria-label="Recognised speech">
-            <span class="heard-label">Heard: </span>
+          <div class="heard-box" id="heard-box" aria-live="polite">
+            <span class="heard-label">Heard:</span>
             <span class="heard-text" id="heard-text">—</span>
           </div>
-
         </div>
-        <!-- /input-panel -->
       </section>
-      <!-- /speech-to-sign-page -->
 
 
-      <!-- ════════════════════════════════════════════════════════
-           PAGE 4 · SETTINGS
-      ════════════════════════════════════════════════════════ -->
+      <!-- ════════════════════════════════════════════════════
+           PAGE: SETTINGS (protected)
+      ════════════════════════════════════════════════════ -->
       <section id="settings-page" class="page" aria-labelledby="settings-sr-heading" role="region">
-        <h2 id="settings-sr-heading" class="sr-only">Application Settings</h2>
+        <h2 id="settings-sr-heading" class="sr-only">Settings</h2>
+
+        <div class="page-header">
+          <span class="page-eyebrow">Preferences</span>
+          <h1 class="page-title">Settings</h1>
+          <p class="page-subtitle">Personalise JISSR — appearance, accessibility, and voice options.</p>
+        </div>
 
         <div class="settings-scroll">
 
-          <!-- ── Settings Group: Language ── -->
           <div class="settings-group" role="group" aria-labelledby="lg-lang">
             <div class="sg-header">
               <span class="sg-icon" aria-hidden="true">🌐</span>
-              <h3 class="sg-title" id="lg-lang">Language Preferences</h3>
+              <h3 class="sg-title" id="lg-lang">Language</h3>
             </div>
-
-            <!-- OSL only — no other dialects supported -->
             <div class="sg-row sg-row--between">
-              <div class="sg-label">
-                Sign Language
-                <span class="sg-desc">Omani Sign Language — the only supported dialect</span>
-              </div>
-              <span class="sg-value"
-                style="background:var(--color-accent-dim);color:var(--color-accent);padding:6px 14px;border-radius:20px;font-weight:700;font-size:13px;border:1px solid var(--color-accent);white-space:nowrap;">
-                OSL
-              </span>
+              <div class="sg-label">Sign Language <span class="sg-desc">Omani Sign Language — only supported dialect</span></div>
+              <span class="sg-value" style="background:var(--color-accent-dim);color:var(--om-red);padding:6px 14px;border-radius:20px;font-weight:700;font-size:13px;border:1px solid var(--om-red);white-space:nowrap;">OSL</span>
             </div>
           </div>
-          <!-- /language -->
 
-          <!-- ── Settings Group: Audio & Video ── -->
           <div class="settings-group" role="group" aria-labelledby="lg-av">
             <div class="sg-header">
               <span class="sg-icon" aria-hidden="true">🎥</span>
               <h3 class="sg-title" id="lg-av">Audio &amp; Video</h3>
             </div>
-
             <div class="sg-row">
-              <label class="sg-label" for="cam-qual-sel">
-                Camera Quality
-                <span class="sg-desc">Higher quality uses more battery &amp; data</span>
-              </label>
+              <label class="sg-label" for="cam-qual-sel">Camera Quality <span class="sg-desc">Higher quality uses more battery</span></label>
               <select class="sg-select" id="cam-qual-sel">
                 <option value="480p">480p — Standard</option>
-                <option value="720p" selected>720p — HD (Recommended)</option>
+                <option value="720p" selected>720p — HD</option>
                 <option value="1080p">1080p — Full HD</option>
                 <option value="4k">4K — Ultra HD</option>
               </select>
             </div>
           </div>
-          <!-- /audio video -->
 
-          <!-- ── Settings Group: Accessibility ── -->
           <div class="settings-group" role="group" aria-labelledby="lg-a11y">
             <div class="sg-header">
               <span class="sg-icon" aria-hidden="true">♿</span>
               <h3 class="sg-title" id="lg-a11y">Accessibility</h3>
             </div>
-
-            <!-- Text Size Slider -->
             <div class="sg-row sg-row--col">
-              <label class="sg-label" for="text-size-sl">
-                Text Size
-                <span class="sg-desc">Translation text size across the app</span>
-              </label>
+              <label class="sg-label" for="text-size-sl">Text Size <span class="sg-desc">Translation text size</span></label>
               <div class="slider-row">
                 <span class="slider-sm-a" aria-hidden="true">A</span>
-                <input type="range" class="sg-slider" id="text-size-sl"
-                  min="14" max="28" value="18" step="2"
-                  aria-label="Text size" aria-valuemin="14" aria-valuemax="28" aria-valuenow="18" />
+                <input type="range" class="sg-slider" id="text-size-sl" min="14" max="28" value="18" step="2" aria-label="Text size" />
                 <span class="slider-lg-a" aria-hidden="true">A</span>
                 <output class="slider-out" id="ts-out" for="text-size-sl" aria-live="polite">18px</output>
               </div>
             </div>
-
-            <!-- Haptic Feedback -->
             <div class="sg-row sg-row--between">
-              <div class="sg-label">
-                Haptic Feedback
-                <span class="sg-desc">Vibrate on recording events and errors</span>
-              </div>
-              <label class="toggle-wrap" for="haptic-tog" aria-label="Toggle haptic feedback">
+              <div class="sg-label">Haptic Feedback <span class="sg-desc">Vibrate on events</span></div>
+              <label class="toggle-wrap" for="haptic-tog">
                 <div class="toggle-track" role="switch" aria-checked="true">
                   <input type="checkbox" id="haptic-tog" class="toggle-input" checked />
                   <span class="toggle-knob" aria-hidden="true"></span>
                 </div>
               </label>
             </div>
-
-            <!-- Visual Audio Cues -->
             <div class="sg-row sg-row--between">
-              <div class="sg-label">
-                Visual Audio Cues
-                <span class="sg-desc">Show waveforms &amp; pulse indicators for all audio</span>
-              </div>
-              <label class="toggle-wrap" for="cues-tog" aria-label="Toggle visual audio cues">
+              <div class="sg-label">Visual Audio Cues <span class="sg-desc">Show waveforms &amp; pulse indicators</span></div>
+              <label class="toggle-wrap" for="cues-tog">
                 <div class="toggle-track" role="switch" aria-checked="true">
                   <input type="checkbox" id="cues-tog" class="toggle-input" checked />
                   <span class="toggle-knob" aria-hidden="true"></span>
                 </div>
               </label>
             </div>
-
-            <!-- High Contrast Mode -->
             <div class="sg-row sg-row--between">
-              <div class="sg-label">
-                High Contrast Mode
-                <span class="sg-desc">Increases border and text contrast</span>
-              </div>
-              <label class="toggle-wrap" for="contrast-tog" aria-label="Toggle high contrast mode">
+              <div class="sg-label">High Contrast <span class="sg-desc">Increase border and text contrast</span></div>
+              <label class="toggle-wrap" for="contrast-tog">
                 <div class="toggle-track" role="switch" aria-checked="false">
                   <input type="checkbox" id="contrast-tog" class="toggle-input" />
                   <span class="toggle-knob" aria-hidden="true"></span>
@@ -596,65 +803,35 @@
               </label>
             </div>
           </div>
-          <!-- /accessibility -->
 
-          <!-- ── Settings Group: Appearance / Theme ── -->
           <div class="settings-group" role="group" aria-labelledby="lg-theme">
             <div class="sg-header">
               <span class="sg-icon" aria-hidden="true">🎨</span>
               <h3 class="sg-title" id="lg-theme">Appearance</h3>
             </div>
-
-            <!-- Theme segmented control -->
-            <div class="sg-row sg-row--between">
-              <div class="sg-label">
-                App Theme
-                <span class="sg-desc">Switch between dark and light mode</span>
-              </div>
-              <div class="seg-ctrl" role="radiogroup" aria-label="App theme" id="theme-seg">
-                <button class="seg-btn active" data-theme="dark" role="radio" aria-checked="true">🌙 Dark</button>
-                <button class="seg-btn" data-theme="light" role="radio" aria-checked="false">☀️ Light</button>
-              </div>
-            </div>
-
-            <!-- Accent color picker -->
             <div class="sg-row sg-row--col">
-              <div class="sg-label">
-                Accent Color
-                <span class="sg-desc">App-wide primary highlight color</span>
-              </div>
-              <div class="accent-picker" role="radiogroup" aria-label="Choose accent color" id="accent-picker">
-                <button class="accent-swatch active" data-color="#0dff8c" style="--sw:#0dff8c" aria-label="Green (default)" aria-pressed="true"></button>
-                <button class="accent-swatch" data-color="#00cfff" style="--sw:#00cfff" aria-label="Cyan" aria-pressed="false"></button>
-                <button class="accent-swatch" data-color="#ff6b35" style="--sw:#ff6b35" aria-label="Orange" aria-pressed="false"></button>
-                <button class="accent-swatch" data-color="#c084fc" style="--sw:#c084fc" aria-label="Purple" aria-pressed="false"></button>
-                <button class="accent-swatch" data-color="#f472b6" style="--sw:#f472b6" aria-label="Pink" aria-pressed="false"></button>
-                <button class="accent-swatch" data-color="#facc15" style="--sw:#facc15" aria-label="Yellow" aria-pressed="false"></button>
+              <div class="sg-label">Accent Color <span class="sg-desc">App-wide highlight color</span></div>
+              <div class="accent-picker" role="radiogroup" id="accent-picker">
+                <button class="accent-swatch active" data-color="#C8102E" style="--sw:#C8102E" aria-label="Om Red" aria-pressed="true"></button>
+                <button class="accent-swatch" data-color="#117A4D" style="--sw:#117A4D" aria-label="Om Green" aria-pressed="false"></button>
+                <button class="accent-swatch" data-color="#C9A227" style="--sw:#C9A227" aria-label="Khanjar Gold" aria-pressed="false"></button>
+                <button class="accent-swatch" data-color="#1d4ed8" style="--sw:#1d4ed8" aria-label="Blue" aria-pressed="false"></button>
+                <button class="accent-swatch" data-color="#6b21a8" style="--sw:#6b21a8" aria-label="Purple" aria-pressed="false"></button>
               </div>
             </div>
           </div>
-          <!-- /appearance -->
 
-          <!-- ── Settings Group: ElevenLabs (TTS + STT) ── -->
           <div class="settings-group" role="group" aria-labelledby="lg-el">
             <div class="sg-header">
               <span class="sg-icon" aria-hidden="true">🔊</span>
               <h3 class="sg-title" id="lg-el">ElevenLabs Voice API</h3>
             </div>
             <div class="sg-row sg-row--col">
-              <label class="sg-label" for="elApiKey">
-                API Key
-                <span class="sg-desc">Required for natural TTS and speech recognition. Get one free at elevenlabs.io</span>
-              </label>
-              <input class="form-input" id="elApiKey" type="password"
-                placeholder="sk-xxxxxxxxxxxxxxxx" autocomplete="off"
-                oninput="saveELSettings()" dir="ltr" style="font-size:13px;min-height:40px;"/>
+              <label class="sg-label" for="elApiKey">API Key <span class="sg-desc">Required for natural TTS and STT</span></label>
+              <input class="form-input" id="elApiKey" type="password" placeholder="sk-xxxxxxxxxxxxxxxx" autocomplete="off" oninput="saveELSettings()" dir="ltr" style="font-size:13px;min-height:44px;"/>
             </div>
             <div class="sg-row">
-              <label class="sg-label" for="elVoiceId">
-                Voice
-                <span class="sg-desc">ElevenLabs voice for TTS output</span>
-              </label>
+              <label class="sg-label" for="elVoiceId">Voice <span class="sg-desc">ElevenLabs voice</span></label>
               <select class="sg-select" id="elVoiceId" onchange="saveELSettings()">
                 <option value="21m00Tcm4TlvDq8ikWAM">Rachel (Multilingual)</option>
                 <option value="EXAVITQu4vr4xnSDxMaL">Bella</option>
@@ -665,15 +842,10 @@
             </div>
             <div class="sg-row sg-row--col" id="elVoiceCustomRow" style="display:none;">
               <label class="sg-label" for="elVoiceCustom">Custom Voice ID</label>
-              <input class="form-input" id="elVoiceCustom" type="text"
-                placeholder="Enter ElevenLabs voice ID…" dir="ltr"
-                oninput="saveELSettings()" style="font-size:13px;min-height:40px;"/>
+              <input class="form-input" id="elVoiceCustom" type="text" placeholder="Enter ElevenLabs voice ID…" dir="ltr" oninput="saveELSettings()" style="font-size:13px;min-height:44px;"/>
             </div>
             <div class="sg-row">
-              <label class="sg-label" for="elModel">
-                Model
-                <span class="sg-desc">Multilingual v2 is best for non-English</span>
-              </label>
+              <label class="sg-label" for="elModel">Model <span class="sg-desc">Multilingual v2 best for Arabic</span></label>
               <select class="sg-select" id="elModel" onchange="saveELSettings()">
                 <option value="eleven_multilingual_v2">Multilingual v2</option>
                 <option value="eleven_turbo_v2_5">Turbo v2.5 (faster)</option>
@@ -682,21 +854,24 @@
             </div>
           </div>
 
-          <!-- ── Settings Group: About ── -->
-          <div class="settings-group settings-group--about" role="group" aria-labelledby="lg-about">
+          <div class="settings-group" role="group" aria-labelledby="lg-about">
             <div class="sg-header">
               <span class="sg-icon" aria-hidden="true">ℹ️</span>
               <h3 class="sg-title" id="lg-about">About</h3>
             </div>
             <div class="sg-row sg-row--between">
-              <span class="sg-label">Version</span><span class="sg-value">v2.5.0</span>
+              <span class="sg-label">Version</span><span class="sg-value">v4.0.0</span>
             </div>
             <div class="sg-row sg-row--between">
-              <span class="sg-label">Model Engine</span><span class="sg-value">JISSR‑v1</span>
+              <span class="sg-label">Model Engine</span><span class="sg-value">UniSign + RTMPose</span>
             </div>
             <div class="sg-row sg-row--between">
               <span class="sg-label">Available Signs</span>
               <span class="sg-value" id="avWordCount">—</span>
+            </div>
+            <div class="sg-row sg-row--between">
+              <span class="sg-label">Database</span>
+              <span class="sg-value" style="color:var(--om-green);">MySQL ✓</span>
             </div>
             <div class="sg-row">
               <button class="btn btn--outline btn--full" id="logout-btn">Sign Out</button>
@@ -704,46 +879,124 @@
           </div>
 
         </div>
-        <!-- /settings-scroll -->
       </section>
-      <!-- /settings-page -->
+
+
+      <!-- ════════════════════════════════════════════════════
+           PAGE: HISTORY (protected)
+      ════════════════════════════════════════════════════ -->
+      <section id="history-page" class="page" aria-labelledby="hist-sr-heading" role="region">
+        <h2 id="hist-sr-heading" class="sr-only">Translation History</h2>
+
+        <div class="page-header">
+          <span class="page-eyebrow">Your activity</span>
+          <h1 class="page-title">Translation History</h1>
+          <p class="page-subtitle">Everything you've translated — automatically saved to your account.</p>
+        </div>
+
+        <div class="hist-container">
+
+          <div class="hist-stats">
+            <div class="stat-card">
+              <span class="stat-num" id="hist-total">0</span>
+              <span class="stat-label">Total</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num" id="hist-s2s-count">0</span>
+              <span class="stat-label">Sign → Speech</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num" id="hist-sp2s-count">0</span>
+              <span class="stat-label">Speech → Sign</span>
+            </div>
+          </div>
+
+          <div class="hist-controls">
+            <div class="hist-filters" role="group" aria-label="Filter history">
+              <button class="filter-btn active" data-filter="all">All</button>
+              <button class="filter-btn" data-filter="s2s">Sign</button>
+              <button class="filter-btn" data-filter="sp2s">Speech</button>
+            </div>
+            <button class="btn btn--outline btn--sm" id="hist-clear-btn">
+              🗑 Clear All
+            </button>
+          </div>
+
+          <div class="hist-list" id="hist-list" aria-live="polite">
+            <div class="hist-empty" id="hist-empty">
+              <span class="hist-empty-icon">📊</span>
+              <p>No translation history yet</p>
+              <p style="font-size:13px;color:var(--text-muted);">Your translations will be saved here automatically</p>
+            </div>
+          </div>
+
+        </div>
+      </section>
 
     </main>
-    <!-- /main-content -->
 
 
-    <!-- ──────────────────────────────────────────────────────────
-         BOTTOM NAVIGATION — JS toggles hidden attr after login
-    ──────────────────────────────────────────────────────────── -->
-    <nav class="bottom-nav" id="bottom-nav" role="navigation"
-      aria-label="Main application navigation" hidden>
+    <!-- ════ FOOTER ════ -->
+    <footer class="app-footer" id="app-footer" role="contentinfo">
+      <div class="footer-inner">
+        <div class="footer-col">
+          <div class="footer-brand">
+            <img class="brand-mark brand-mark--img" src="{{ url_for('static', filename='logo.png') }}?v=4.2" alt="JISSR logo" width="42" height="42" style="width:42px;height:42px;border-radius:50%;object-fit:contain;background:#fff;padding:2px;" />
+            <div class="brand-text">
+              <span class="brand-name">JISSR</span>
+              <span class="brand-ar">جِسر</span>
+            </div>
+          </div>
+          <p class="footer-tag">A communication bridge for the Deaf and Hard of Hearing community in Oman — powered by AI, built with care.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Product</h4>
+          <ul>
+            <li><a href="#" data-target="sign-to-speech-page">Sign → Speech</a></li>
+            <li><a href="#" data-target="speech-to-sign-page">Speech → Sign</a></li>
+            <li><a href="#" data-target="history-page">History</a></li>
+            <li><a href="#" data-target="settings-page">Settings</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>About</h4>
+          <ul>
+            <li><a href="/about">Our mission</a></li>
+            <li><a href="/team">The team</a></li>
+            <li><a href="/contact">Contact</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Legal</h4>
+          <ul>
+            <li><a href="/terms">Terms of Service</a></li>
+            <li><a href="/privacy">Privacy Policy</a></li>
+            <li><a href="/accessibility">Accessibility</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© 2026 JISSR · جِسر · Made in Oman</span>
+        <span style="display:inline-block;width:120px;height:4px;border-radius:2px;background:linear-gradient(90deg, var(--om-red) 0 33.3%, #fff 33.3% 66.6%, var(--om-green) 66.6% 100%);box-shadow:0 0 0 1px var(--border-default);"></span>
+      </div>
+    </footer>
 
-      <button class="nav-item" data-target="sign-to-speech-page"
-        aria-label="Sign to Speech page" aria-current="false">
-        <span class="nav-icon" aria-hidden="true">📹</span>
-        <span class="nav-label">Sign</span>
-      </button>
-
-      <button class="nav-item" data-target="speech-to-sign-page"
-        aria-label="Speech to Sign page" aria-current="false">
-        <span class="nav-icon" aria-hidden="true">🔊</span>
-        <span class="nav-label">Speech</span>
-      </button>
-
-      <button class="nav-item" data-target="settings-page"
-        aria-label="Settings page" aria-current="false">
-        <span class="nav-icon" aria-hidden="true">⚙️</span>
-        <span class="nav-label">Settings</span>
-      </button>
-
+    <!-- Legacy bottom nav (hidden, kept for JS compatibility) -->
+    <nav class="bottom-nav" id="bottom-nav" role="navigation" aria-label="Main navigation" hidden>
+      <button class="nav-item" data-target="sign-to-speech-page" aria-current="false"><span class="nav-icon">📹</span><span class="nav-label">Sign</span></button>
+      <button class="nav-item" data-target="speech-to-sign-page" aria-current="false"><span class="nav-icon">🔊</span><span class="nav-label">Speech</span></button>
+      <button class="nav-item" data-target="history-page" aria-current="false"><span class="nav-icon">📋</span><span class="nav-label">History</span></button>
+      <button class="nav-item" data-target="settings-page" aria-current="false"><span class="nav-icon">⚙️</span><span class="nav-label">Settings</span></button>
     </nav>
 
-    <!-- Toast notification (aria-live region) -->
-    <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true" aria-hidden="true"></div>
+    <!-- Page heading (for legacy JS compatibility — hidden) -->
+    <h1 id="page-heading" class="sr-only" aria-live="polite">JISSR</h1>
+
+    <!-- Toast -->
+    <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true" aria-hidden="true" hidden></div>
 
   </div>
-  <!-- /app -->
 
-  <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=4.2"></script>
 </body>
 </html>
