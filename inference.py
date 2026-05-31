@@ -47,12 +47,20 @@ def ensure_checkpoint(path=CHECKPOINT_PATH):
         print(f"[checkpoint] Missing {target} and MODEL_BLOB_URL not set — skipping download")
         return False
     target.parent.mkdir(parents=True, exist_ok=True)
-    print(f"[checkpoint] Downloading model from blob storage → {target}")
-    import urllib.request, shutil
     tmp = target.with_suffix(target.suffix + ".part")
     try:
-        with urllib.request.urlopen(url, timeout=600) as resp, open(tmp, "wb") as out:
-            shutil.copyfileobj(resp, out, length=1024 * 1024)
+        if "blob.core.windows.net" in url:
+            print(f"[checkpoint] Downloading model from Azure Blob (managed identity) -> {target}")
+            from azure.identity import DefaultAzureCredential
+            from azure.storage.blob import BlobClient
+            blob = BlobClient.from_blob_url(url, credential=DefaultAzureCredential())
+            with open(tmp, "wb") as out:
+                blob.download_blob(max_concurrency=4).readinto(out)
+        else:
+            print(f"[checkpoint] Downloading model from URL -> {target}")
+            import urllib.request, shutil
+            with urllib.request.urlopen(url, timeout=600) as resp, open(tmp, "wb") as out:
+                shutil.copyfileobj(resp, out, length=1024 * 1024)
         tmp.replace(target)
         print(f"[checkpoint] Downloaded {target.stat().st_size / 1e9:.2f} GB")
         return True
