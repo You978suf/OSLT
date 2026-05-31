@@ -13,5 +13,8 @@ Pillow
 gtts
 gdown
 requests
+pymysql
 transformers
 sentencepiece
+decord
+azure-communication-email

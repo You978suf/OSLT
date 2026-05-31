@@ -1,14 +1,21 @@
-﻿*.pt
+*.pt
 *.pth
 models/
 __pycache__/
 *.pyc
 *.pyo
 .git
+.gitignore
 .env
 *.env
-<<<<<<< HEAD
+*.log
+server.log
+database.db
 Thumbs.db
-=======
-Thumbs.db
->>>>>>> 1bd6f80c5220bd4f15d2ff553eee65cd5bb5cba0
+.DS_Store
+.vscode/
+.idea/
+*.png
+!static/**/*.png
+!templates/**/*.png
+config.json
