@@ -1096,7 +1096,7 @@ a:hover { color: var(--om-blue-deep); text-decoration: underline; }
   display: block; width: 28px; height: 4px; border-radius: 2px;
 }
 .auth-brand-footer-strip span:nth-child(1) { background: #fff; }
-.auth-brand-footer-strip span:nth-child(2) { background: var(--om-gold); }
+.auth-brand-footer-strip span:nth-child(2) { background: var(--om-red); }
 .auth-brand-footer-strip span:nth-child(3) { background: var(--om-green); }
 
 /* RIGHT — Form side */
