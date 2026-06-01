@@ -887,10 +887,6 @@ def avatar_frames(sign_id):
     return jsonify({"success": True, "sign_id": sign_id, "format": fmt,
                     "n_frames": len(frames), "frames": frames})
 
-@app.route("/avatar")
-def avatar_page():
-    return render_template("avatar.html")
-
 # ── Legacy gTTS fallback ──────────────────────────────────────────────────────
 @app.route("/tts", methods=["POST"])
 @require_auth
