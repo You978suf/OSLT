@@ -2352,3 +2352,16 @@ img, video, canvas { max-width: 100%; height: auto; }
   .op-top-name { font-size: 16px; }
   .page-title  { font-size: 20px; }
 }
+
+/* On phones force cam-col (camera + record button) to come BEFORE
+   the output panel (prediction + auto-speak) regardless of source. */
+@media (max-width: 980px) {
+  .s2s-cam-col      { order: 1; }
+  .s2s-output-panel { order: 2; }
+  /* Stick the output panel directly under the record section visually */
+  .s2s-output-panel {
+    margin-top: -4px;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(13,23,38,0.05);
+  }
+}
