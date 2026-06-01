@@ -1555,7 +1555,7 @@ a:hover { color: var(--om-blue-deep); text-decoration: underline; }
   .landing-card { display: none; }
   .landing-hero-logo { width: 260px; height: 260px; }
   .footer-inner { grid-template-columns: 1fr 1fr; }
-  .s2s-grid, .sp2s-layout { grid-template-columns: 1fr; }
+  .s2s-layout, .s2s-grid, .sp2s-layout { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 720px) {
