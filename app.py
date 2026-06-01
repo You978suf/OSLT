@@ -164,7 +164,6 @@ def auth_forgot_password():
     email = (data.get("email") or "").strip().lower()
     if not email or "@" not in email:
         return jsonify({"success": False, "error": "Valid email required"}), 400
-    generic_ok = jsonify({"success": True, "message": "If an account exists for that email, a reset link has been sent."})
     try:
         conn = get_db()
         with conn.cursor() as cursor:
@@ -172,7 +171,11 @@ def auth_forgot_password():
             user = cursor.fetchone()
             if not user:
                 conn.close()
-                return generic_ok
+                return jsonify({
+                    "success": False,
+                    "code": "not_registered",
+                    "error": "No account is registered with that email. Please register first."
+                }), 404
             raw_token = secrets.token_urlsafe(32)
             token_hash = _hash_reset_token(raw_token)
             expires = (datetime.now() + timedelta(hours=1)).strftime("%Y-%m-%d %H:%M:%S")
@@ -184,10 +187,11 @@ def auth_forgot_password():
         client, cfg = _get_email_client()
         sender = (cfg.get("ACS_SENDER_ADDRESS") or "").strip() if cfg else ""
         base_url = (cfg.get("APP_BASE_URL") or request.host_url.rstrip("/")).rstrip("/") if cfg else request.host_url.rstrip("/")
+        reset_link = f"{base_url}/reset-password?token={raw_token}"
+        ok_payload = jsonify({"success": True, "message": f"A reset link has been sent to {email}."})
         if not client or not sender:
-            print(f"[forgot-password] ACS not configured; reset link: {base_url}/?reset_token={raw_token}")
-            return generic_ok
-        reset_link = f"{base_url}/?reset_token={raw_token}"
+            print(f"[forgot-password] ACS not configured; reset link: {reset_link}")
+            return ok_payload
         message = {
             "senderAddress": sender,
             "recipients": {"to": [{"address": email, "displayName": user["name"] or "User"}]},
@@ -215,7 +219,7 @@ def auth_forgot_password():
             poller.result(timeout=20)
         except Exception as e:
             print(f"[forgot-password] Email send failed: {e}")
-        return generic_ok
+        return ok_payload
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -490,6 +494,14 @@ def get_analytics():
 @app.route("/")
 def index():
     return render_template("index.html")
+
+@app.route("/forgot-password")
+def forgot_password_page():
+    return render_template("forgot_password.html")
+
+@app.route("/reset-password")
+def reset_password_page():
+    return render_template("reset_password.html")
 
 # ── Static info pages ─────────────────────────────────────────────────────────
 

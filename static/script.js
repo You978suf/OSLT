@@ -388,49 +388,6 @@ LOGIN_FORM?.addEventListener('submit', async e => {
   setBtnLoading(LOGIN_BTN, false);
 });
 
-document.querySelectorAll('.forgot-link').forEach(link => {
-  link.addEventListener('click', async e => {
-    e.preventDefault();
-    const prefill = document.getElementById('email-input')?.value?.trim() || '';
-    const email = (window.prompt('Enter the email address for your account. We will send you a reset link.', prefill) || '').trim();
-    if (!email) return;
-    if (!email.includes('@')) { showToast('⚠️ Enter a valid email address'); return; }
-    try {
-      const r = await fetch(`${API}/auth/forgot-password`, {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ email }),
-      });
-      const d = await r.json();
-      if (d.success) showToast('📧 If that email exists, a reset link has been sent. Check your inbox.');
-      else showToast('⚠️ ' + (d.error || 'Request failed'));
-    } catch { showToast('⚠️ Connection error'); }
-  });
-});
-
-(async function handleResetTokenInUrl() {
-  try {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('reset_token');
-    if (!token) return;
-    const newPw = window.prompt('Enter your new password (at least 6 characters):');
-    if (newPw === null) return;
-    if (!newPw || newPw.length < 6) { showToast('⚠️ Password must be at least 6 characters'); return; }
-    const r = await fetch(`${API}/auth/reset-password`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ token, password: newPw }),
-    });
-    const d = await r.json();
-    if (d.success) {
-      showToast('✅ Password updated. Please sign in.');
-      params.delete('reset_token');
-      const cleanUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
-      window.history.replaceState({}, '', cleanUrl);
-    } else {
-      showToast('⚠️ ' + (d.error || 'Reset failed'));
-    }
-  } catch { showToast('⚠️ Connection error'); }
-})();
-
 REGISTER_FORM?.addEventListener('submit', async e => {
   e.preventDefault();
   if (!validateRegisterForm()) return;
