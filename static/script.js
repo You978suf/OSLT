@@ -1557,25 +1557,20 @@ function validateLoginForm() {
   return !emailErr && !pwErr;
 }
 
-/* Patch login form to run validation before submitting */
-(function patchLoginFormValidation() {
-  const origLoginHandler = LOGIN_FORM?._originalSubmit;
-  LOGIN_FORM?.addEventListener('submit', e => {
-    if (!validateLoginForm()) e.stopImmediatePropagation();
-  }, true); // capture phase — runs before existing handler
-})();
-
-/* Patch register form to run validation before submitting */
-REGISTER_FORM?.addEventListener('submit', e => {
-  if (!validateRegisterForm()) e.stopImmediatePropagation();
+/* Block native form submission when validation fails (capture phase) */
+LOGIN_FORM?.addEventListener('submit', e => {
+  if (!validateLoginForm()) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }
 }, true);
 
-/* Patch register-btn handler to call our validation */
-const _origRegisterSubmit = REGISTER_FORM?.onsubmit;
 REGISTER_FORM?.addEventListener('submit', e => {
-  // The capture listener above will stop propagation if invalid
-  // so reaching here means it's valid — let the existing async handler run
-});
+  if (!validateRegisterForm()) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }
+}, true);
 
 
 /* ═══════════════════════════════════════════════════════════════
