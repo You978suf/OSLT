@@ -16,6 +16,8 @@ from PIL import Image
 from flask import Flask, render_template, request, jsonify, send_file
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 # Import database module
 from database import (
@@ -44,8 +46,27 @@ from inference import (
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+)
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+
+def _rate_key():
+    fwd = request.headers.get("X-Forwarded-For", "")
+    if fwd:
+        return fwd.split(",")[0].strip()
+    return get_remote_address()
+
+limiter = Limiter(
+    key_func=_rate_key,
+    app=app,
+    default_limits=[],
+    storage_uri="memory://",
+    headers_enabled=True,
+)
 
 ACTIVE_PROCESSORS = {}
 
@@ -59,6 +80,7 @@ def get_config():
 # ── Auth Routes ───────────────────────────────────────────────────────────────
 
 @app.route("/auth/register", methods=["POST"])
+@limiter.limit("5 per hour; 20 per day")
 def auth_register():
     data = request.get_json(force=True)
     email = (data.get("email") or "").strip().lower()
@@ -87,6 +109,7 @@ def auth_register():
         return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/auth/login", methods=["POST"])
+@limiter.limit("10 per minute; 60 per hour")
 def auth_login():
     data = request.get_json(force=True)
     email = (data.get("email") or "").strip().lower()
@@ -135,6 +158,7 @@ def _hash_reset_token(token):
     return hashlib.sha256(token.encode()).hexdigest()
 
 @app.route("/auth/forgot-password", methods=["POST"])
+@limiter.limit("3 per hour; 10 per day")
 def auth_forgot_password():
     data = request.get_json(force=True) or {}
     email = (data.get("email") or "").strip().lower()
@@ -196,6 +220,7 @@ def auth_forgot_password():
         return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/auth/reset-password", methods=["POST"])
+@limiter.limit("10 per hour; 30 per day")
 def auth_reset_password():
     data = request.get_json(force=True) or {}
     raw_token = (data.get("token") or "").strip()
@@ -382,6 +407,7 @@ def save_settings():
         return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/auth/google", methods=["POST"])
+@limiter.limit("10 per minute; 60 per hour")
 def auth_google():
     """Verify a Google Identity Services id_token, then create or find the user."""
     import requests as req

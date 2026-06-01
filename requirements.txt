@@ -1,6 +1,7 @@
 ﻿flask
 flask-cors
 flask-socketio
+flask-limiter
 torch
 torchvision
 einops
