@@ -31,3 +31,6 @@ Thumbs.db
 
 # Scaffolds / vendor not part of this project
 welcome-to-docker/
+
+# Claude Code session state
+.claude/
