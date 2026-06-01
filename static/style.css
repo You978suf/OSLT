@@ -2259,3 +2259,80 @@ body:has(.bottom-nav:not([hidden])) .main-content { padding-bottom: 0; }
 /* Stop horizontal scrollbars caused by oversized children */
 html, body { overflow-x: hidden; max-width: 100vw; }
 img, video, canvas { max-width: 100%; height: auto; }
+
+/* ══════════════════════════════════════════════════════════════
+   S2S / SP2S pages — phone polish
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 720px) {
+  /* Tight grid padding so the viewfinder uses screen width */
+  .s2s-layout,
+  #speech-to-sign-page.active {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  /* Viewfinder: 4:3 fits a phone screen much better than 16:10 */
+  .viewfinder { aspect-ratio: 4/3; border-radius: 12px; }
+  .vf-corner { width: 18px; height: 18px; border-width: 2px; }
+  .vf-corner--tl { top: 8px;    left: 8px; }
+  .vf-corner--tr { top: 8px;    right: 8px; }
+  .vf-corner--bl { bottom: 8px; left: 8px; }
+  .vf-corner--br { bottom: 8px; right: 8px; }
+  .vf-guide        { padding: 16px; gap: 6px; }
+  .vf-guide-icon   { font-size: 40px; }
+  .vf-guide-title  { font-size: 14px; }
+  .vf-guide-sub    { font-size: 11px; }
+  .vf-rec-badge    { top: 8px; padding: 4px 10px; font-size: 11px; }
+  .vf-quality-badge{ top: 8px; right: 8px; padding: 4px 8px; font-size: 10px; }
+  .translation-overlay { left: 8px; right: 8px; bottom: 8px; padding: 8px 10px; }
+  .tl-label { font-size: 9px; letter-spacing: 1px; }
+  .tl-text  { font-size: 14px; }
+
+  /* Action bar: smaller buttons, tighter gap */
+  .action-bar {
+    gap: 16px;
+    padding: 12px;
+    border-radius: 12px;
+  }
+  .action-btn { width: 52px; height: 52px; }
+  .action-btn-icon { width: 18px; height: 18px; }
+  .action-btn-label { font-size: 9px; }
+  .record-btn {
+    width: 64px; height: 64px;
+    border-width: 3px;
+  }
+  .record-inner { width: 38px; height: 38px; }
+  .record-btn[aria-pressed="true"] .record-inner { width: 20px; height: 20px; }
+
+  /* Output panel: drop the rigid 720px cap so it flows on phones */
+  .s2s-output-panel {
+    max-height: none;
+    overflow: visible;
+    padding: 14px;
+    border-radius: 12px;
+  }
+  .op-header { padding-bottom: 10px; margin-bottom: 10px; }
+  .op-top-card  { padding: 12px; }
+  .op-top-name  { font-size: 18px; }
+  .op-top-en    { font-size: 12px; }
+  .op-speak-btn { width: 44px; height: 44px; font-size: 16px; }
+  .op-hist-list { max-height: 260px; }
+
+  /* Page header: tighter */
+  .page-header   { padding: 16px 12px 10px; }
+  .page-eyebrow  { font-size: 10px; }
+  .page-title    { font-size: 22px; }
+  .page-subtitle { font-size: 13px; }
+}
+
+@media (max-width: 480px) {
+  .s2s-layout,
+  #speech-to-sign-page.active { padding: 10px; gap: 10px; }
+  .action-bar  { gap: 12px; padding: 10px; }
+  .action-btn  { width: 48px; height: 48px; }
+  .record-btn  { width: 60px; height: 60px; }
+  .record-inner { width: 32px; height: 32px; }
+  .s2s-output-panel { padding: 12px; }
+  .op-top-name { font-size: 16px; }
+  .page-title  { font-size: 20px; }
+}
