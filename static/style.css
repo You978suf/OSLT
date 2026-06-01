@@ -2162,3 +2162,100 @@ a:hover { color: var(--om-blue-deep); text-decoration: underline; }
 /* ── Hide legacy bottom-nav (replaced by top nav) ── */
 .bottom-nav { display: none !important; }
 body:has(.bottom-nav:not([hidden])) .main-content { padding-bottom: 0; }
+
+/* ══════════════════════════════════════════════════════════════
+   MOBILE — extra polish for phones (≤ 720 / ≤ 480)
+══════════════════════════════════════════════════════════════ */
+
+/* Prevent iOS Safari from zooming the page when focusing an input */
+@media (max-width: 720px) {
+  .form-input,
+  .form-textarea,
+  .form-select,
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="number"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+
+  /* Touch-friendly tap targets */
+  .btn,
+  .input-eye-btn,
+  .auth-tab,
+  .app-nav-link,
+  .menu-toggle,
+  .header-btn {
+    min-height: 44px;
+  }
+}
+
+/* Phones: tighter spacing so the form actually fits */
+@media (max-width: 480px) {
+  /* Page padding everywhere shrinks */
+  .header-inner { padding: 0 12px; height: 60px; }
+  .page-header { padding: 16px 12px 12px; }
+  .page-title  { font-size: 22px; }
+
+  /* Auth screen — give the card almost the full width */
+  .auth-form-side  { padding: 16px 10px; }
+  .auth-form-wrap  {
+    padding: 20px 18px;
+    border-radius: 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .auth-form-heading h2 { font-size: 22px; }
+  .auth-form-heading p  { font-size: 14px; }
+  .auth-tabs { padding: 3px; margin-bottom: 18px; }
+  .auth-tab  { padding: 10px 6px; font-size: 13px; }
+  .login-form { gap: 14px; }
+  .form-group { margin-bottom: 12px; }
+
+  /* Landing page hero on small screens */
+  .landing-headline    { font-size: 26px; line-height: 1.2; }
+  .landing-hero-inner  { gap: 20px; }
+  .landing-hero-logo   { width: 200px; height: 200px; }
+  .landing-actions     { flex-direction: column; gap: 10px; }
+  .landing-actions .btn { width: 100%; }
+
+  /* Footer collapses to a single column already at 720, just tighten */
+  .footer-inner   { padding: 0 16px; gap: 16px; }
+
+  /* Modals shouldn't overflow */
+  .modal {
+    padding: 12px !important;
+    align-items: flex-start;
+  }
+  .modal-content,
+  .modal-card,
+  .modal-inner {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 12px 0 !important;
+    border-radius: 14px;
+  }
+
+  /* Mobile-nav drawer covers more screen comfortably */
+  .mobile-nav-drawer { padding: 10px 12px; }
+
+  /* Toast positioning so it doesn't get cut off */
+  .toast { left: 12px !important; right: 12px !important; max-width: none !important; }
+
+  /* Forms in app pages */
+  .card,
+  .panel,
+  .settings-card { padding: 16px !important; }
+
+  /* Two-column grids collapse */
+  .two-col,
+  .three-col,
+  .form-row-2 { grid-template-columns: 1fr !important; }
+}
+
+/* Stop horizontal scrollbars caused by oversized children */
+html, body { overflow-x: hidden; max-width: 100vw; }
+img, video, canvas { max-width: 100%; height: auto; }
