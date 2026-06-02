@@ -29,6 +29,7 @@ const APP_NAV_LINKS  = document.querySelectorAll('.app-nav-link');
 const HEADER_USER    = document.getElementById('header-user');
 const HEADER_PUBLIC  = document.getElementById('header-public');
 const HEADER_LOGOUT  = document.getElementById('header-logout-btn');
+const VOICE_BTN      = document.getElementById('voice-settings-btn');
 const SRV_STATUS     = document.getElementById('srvStatus');
 const MENU_TOGGLE    = document.getElementById('menu-toggle');
 const MOBILE_DRAWER  = document.getElementById('mobile-nav-drawer');
@@ -260,6 +261,7 @@ function navigateTo(key) {
   if (HEADER_USER)   HEADER_USER.hidden = onPublic || !state.user;
   if (HEADER_PUBLIC) HEADER_PUBLIC.style.display = onPublic ? 'flex' : 'none';
   if (HEADER_LOGOUT) HEADER_LOGOUT.hidden = onPublic || !state.user;
+  if (VOICE_BTN)     VOICE_BTN.hidden     = onPublic || !state.user;
   if (SRV_STATUS)    SRV_STATUS.hidden = onPublic;
   if (BOTTOM_NAV)    BOTTOM_NAV.hidden = true; // bottom nav permanently retired
   if (PAGE_HEADING)  PAGE_HEADING.textContent = PAGE_TITLES[key] || 'JISSR';
@@ -1152,6 +1154,29 @@ async function doLogout() {
 
 LOGOUT_BTN?.addEventListener('click', doLogout);
 document.getElementById('header-logout-btn')?.addEventListener('click', doLogout);
+
+/* ── Voice API modal (replaces Settings page) ── */
+(function () {
+  const modal = document.getElementById('voice-modal');
+  if (!modal) return;
+  const openBtn  = document.getElementById('voice-settings-btn');
+  const closeBtn = document.getElementById('voice-modal-close');
+  function open() {
+    if (typeof loadELSettings === 'function') loadELSettings();
+    modal.hidden = false;
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+  function close() {
+    modal.hidden = true;
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+  openBtn?.addEventListener('click', open);
+  closeBtn?.addEventListener('click', close);
+  modal.addEventListener('click', e => { if (e.target === modal) close(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !modal.hidden) close(); });
+})();
 
 /* ─────────────────────────────────────────────────────────
    UTILITIES
