@@ -17,7 +17,7 @@ done
 # Pre-warm the model so the first user chat is fast (best-effort, never fails the boot).
 ( curl -sf -X POST http://127.0.0.1:11434/api/generate \
     -H "Content-Type: application/json" \
-    -d '{"model":"llama3.2:1b","prompt":"hi","stream":false}' >/dev/null 2>&1 || true ) &
+    -d '{"model":"llama3.2:3b","prompt":"hi","stream":false}' >/dev/null 2>&1 || true ) &
 
 echo "[entrypoint] starting Flask app..."
 exec python app.py
