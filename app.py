@@ -905,6 +905,66 @@ def tts_gtts():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+# ── Chatbot (Ollama) ──────────────────────────────────────────────────────────
+OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_MODEL    = os.environ.get("OLLAMA_MODEL", "llama3.2")
+
+CHAT_SYSTEM_PROMPT = (
+    "You are JISSR's friendly help assistant. "
+    "JISSR (جِسر, 'bridge' in Arabic) is a real-time Omani Sign Language (OSL) "
+    "translation web app made in Oman.\n\n"
+    "The app has these features users may ask about:\n"
+    "- Sign → Speech: camera captures signs; the AI predicts the OSL word and can speak it aloud "
+    "(Auto-Speak toggle for automatic TTS).\n"
+    "- Speech → Sign: microphone records speech; the app shows the matching OSL avatar sign.\n"
+    "- History: past translations saved per user.\n"
+    "- Settings: language, voice, theme preferences.\n"
+    "- Sign in / Sign up: email + password or Google sign-in. Forgot-password emails a reset link.\n\n"
+    "Guidelines:\n"
+    "- Keep answers short, friendly, and JISSR-focused. Plain English (and Arabic if asked).\n"
+    "- If a user asks something unrelated to JISSR, OSL, sign language, or general accessibility, "
+    "politely steer back.\n"
+    "- Never claim you can see their camera or hear their mic — you are a text-only helper.\n"
+    "- If you don't know a specific OSL sign, suggest they try Sign → Speech to look it up live."
+)
+
+@app.route("/api/chat", methods=["POST"])
+@limiter.limit("30 per minute; 200 per hour")
+def chat():
+    import requests as _r
+    user = get_user_from_token(get_auth_token())
+    if not user:
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+    data = request.get_json(force=True, silent=True) or {}
+    messages = data.get("messages") or []
+    if not isinstance(messages, list) or not messages:
+        return jsonify({"success": False, "error": "messages list required"}), 400
+    # Cap context to last 10 turns
+    messages = [m for m in messages[-10:] if isinstance(m, dict) and m.get("role") in ("user", "assistant") and isinstance(m.get("content"), str)]
+    if not messages:
+        return jsonify({"success": False, "error": "no valid messages"}), 400
+    payload = {
+        "model": OLLAMA_MODEL,
+        "messages": [{"role": "system", "content": CHAT_SYSTEM_PROMPT}] + messages,
+        "stream": False,
+        "options": {"temperature": 0.4, "num_ctx": 2048},
+    }
+    try:
+        r = _r.post(f"{OLLAMA_BASE_URL}/api/chat", json=payload, timeout=60)
+        if r.status_code != 200:
+            return jsonify({"success": False, "error": f"Ollama returned HTTP {r.status_code}"}), 502
+        body = r.json()
+        reply = (body.get("message") or {}).get("content", "").strip()
+        if not reply:
+            return jsonify({"success": False, "error": "Empty reply from model"}), 502
+        return jsonify({"success": True, "reply": reply})
+    except _r.exceptions.ConnectionError:
+        return jsonify({"success": False, "error": "Help assistant is offline. Please try again later."}), 503
+    except _r.exceptions.Timeout:
+        return jsonify({"success": False, "error": "Help assistant took too long to reply. Please try again."}), 504
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 # ── Health ────────────────────────────────────────────────────────────────────
 @app.route("/health")
 def health():
