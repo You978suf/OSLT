@@ -1681,3 +1681,93 @@ document.getElementById('reg-password')?.addEventListener('focus', () => {
   const wrap = document.getElementById('pw-strength-wrap');
   if (wrap && pw) wrap.style.display = 'flex';
 });
+
+/* ─────────────────────────────────────────────────────────
+   HELP CHAT WIDGET (Ollama-backed)
+───────────────────────────────────────────────────────── */
+(function () {
+  const widget   = document.getElementById('chat-widget');
+  const bubble   = document.getElementById('chat-bubble');
+  const panel    = document.getElementById('chat-panel');
+  const closeBtn = document.getElementById('chat-close');
+  const form     = document.getElementById('chat-form');
+  const input    = document.getElementById('chat-input');
+  const msgsBox  = document.getElementById('chat-messages');
+  if (!widget || !bubble || !panel) return;
+
+  const history = [];
+
+  function refreshVisibility() {
+    const authed = !!state.authToken;
+    const onPublic = PUBLIC_PAGES.has(state.currentPage);
+    widget.hidden = !authed || onPublic;
+    if (widget.hidden && !panel.hidden) closePanel();
+  }
+  const _origNavigateTo = window.navigateTo;
+  if (typeof _origNavigateTo === 'function') {
+    window.navigateTo = function (k) { _origNavigateTo(k); refreshVisibility(); };
+  }
+  setInterval(refreshVisibility, 1500);
+  refreshVisibility();
+
+  function openPanel() {
+    panel.hidden = false;
+    panel.setAttribute('aria-hidden', 'false');
+    bubble.setAttribute('aria-expanded', 'true');
+    setTimeout(() => input.focus(), 50);
+  }
+  function closePanel() {
+    panel.hidden = true;
+    panel.setAttribute('aria-hidden', 'true');
+    bubble.setAttribute('aria-expanded', 'false');
+  }
+  bubble.addEventListener('click', () => panel.hidden ? openPanel() : closePanel());
+  closeBtn.addEventListener('click', closePanel);
+
+  function appendMsg(role, text, opts = {}) {
+    const wrap = document.createElement('div');
+    wrap.className = 'chat-msg chat-msg--' + (role === 'user' ? 'user' : 'bot');
+    const bub = document.createElement('div');
+    bub.className = 'chat-msg-bubble';
+    if (opts.typing) bub.classList.add('chat-typing');
+    bub.textContent = text;
+    wrap.appendChild(bub);
+    msgsBox.appendChild(wrap);
+    msgsBox.scrollTop = msgsBox.scrollHeight;
+    return wrap;
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    appendMsg('user', text);
+    history.push({ role: 'user', content: text });
+    const typingEl = appendMsg('bot', '…', { typing: true });
+    try {
+      const r = await fetch(`${API}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        body: JSON.stringify({ messages: history }),
+      });
+      const d = await r.json().catch(() => ({}));
+      typingEl.remove();
+      if (r.status === 401) {
+        appendMsg('bot', 'Please sign in to use Help.');
+      } else if (r.status === 429) {
+        appendMsg('bot', "You're sending messages too quickly. Please wait a minute and try again.");
+      } else if (r.status === 503 || r.status === 504) {
+        appendMsg('bot', d.error || 'Help assistant is offline right now.');
+      } else if (r.ok && d.success) {
+        appendMsg('bot', d.reply);
+        history.push({ role: 'assistant', content: d.reply });
+      } else {
+        appendMsg('bot', d.error || 'Something went wrong. Please try again.');
+      }
+    } catch (_) {
+      typingEl.remove();
+      appendMsg('bot', 'Connection error. Please try again.');
+    }
+  });
+})();
