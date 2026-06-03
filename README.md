@@ -16,7 +16,10 @@
 - **Model:** Fine-tuned **Uni-Sign** (ICLR 2025) in PyTorch, with **RTMPose** for pose estimation.
 - **Dataset-quality pipeline:** sign consistency validated with **Pearson correlation**, **Dynamic Time Warping (DTW)**, and **coefficient-of-variation (CV)** metrics.
 - **Validation:** ~35% baseline dev accuracy (benchmarked against the original Uni-Sign paper) and **73% acceptance** from a certified OSL interpreter.
-- **Real-time web app:** Flask + Socket.IO backend, MySQL storage, text-to-speech output.
+- **Real-time web app:** Flask + Socket.IO backend, MySQL storage, two-way translation.
+- **Two-way translation:** **Sign → Speech** (camera/video to spoken text) and **Speech → Sign** (speech/text to an animated signing avatar driven by recorded landmark frames).
+- **Free natural voice:** **Microsoft edge-tts** with an **Omani Arabic neural voice** (`ar-OM-AbdullahNeural`) — no API key required, with gTTS / browser speech as fallbacks and optional ElevenLabs.
+- **Built-in help assistant:** an in-app chatbot (Ollama `llama3.2`) that answers questions about how to use JISSR.
 
 ---
 
@@ -31,13 +34,20 @@
 ## 🏗️ Architecture
 
 ```
-Sign video / webcam ──► RTMPose (pose estimation) ──► Uni-Sign model (PyTorch)
-        │                                                      │
-        ▼                                                      ▼
-   Flask + Socket.IO  ◄───────── word / sentence text ◄────────┘
-        │
-        ├─► MySQL (users, history)   ── auth, rate limiting
-        └─► gTTS (text-to-speech)    ── spoken output
+Sign → Speech:
+  Sign video / webcam ──► RTMPose (pose estimation) ──► Uni-Sign model (PyTorch)
+          │                                                      │
+          ▼                                                      ▼
+     Flask + Socket.IO  ◄───────── word / sentence text ◄────────┘
+          │
+          ├─► MySQL (users, history)        ── auth, rate limiting
+          └─► TTS: edge-tts (Omani) ▸ gTTS ▸ browser  ── spoken output
+
+Speech → Sign:
+  Mic / typed text ──► word matching ──► landmark frames (.npy) ──► canvas avatar
+
+Help assistant:
+  In-app chat  ──►  /api/chat  ──►  Ollama (llama3.2)
 ```
 
 ## 🛠️ Tech Stack
@@ -48,9 +58,19 @@ Sign video / webcam ──► RTMPose (pose estimation) ──► Uni-Sign model
 | Video / vision | OpenCV, decord, Pillow, NumPy |
 | Backend | Flask, Flask-SocketIO, Flask-CORS, Flask-Limiter |
 | Data | MySQL (PyMySQL) |
-| Speech | gTTS |
-| Cloud / infra | Azure (email, storage, blob), Docker |
+| Speech (TTS) | Microsoft edge-tts (Omani neural voice), gTTS, browser SpeechSynthesis, optional ElevenLabs |
+| Assistant | Ollama (`llama3.2`) help chatbot |
+| Cloud / infra | Azure (Container Apps, email, storage, blob), Docker |
 | Training | Kaggle T4 GPUs |
+
+## 🌐 Web app features
+
+- **Sign → Speech** — translate OSL from the camera or an uploaded video; results are shown and can be spoken aloud (Auto-Speak).
+- **Speech → Sign** — speak (or type) Arabic/English and an animated avatar signs it, using recorded landmark frames (`.npy`) resolved from the vocabulary.
+- **Natural Omani voice** — free Microsoft edge-tts (`ar-OM-AbdullahNeural`) by default; a 🔊 **Voice API** dialog lets a user add an optional ElevenLabs key.
+- **Help chatbot** — a floating assistant (Ollama `llama3.2`) that answers how-to questions about the app.
+- **Accounts & history** — email/password or Google sign-in, password reset by email, per-user translation history.
+- **Security** — HttpOnly/Secure/SameSite session cookies, PBKDF2 password hashing, per-route rate limiting; large model and landmark files are downloaded from Azure Blob at runtime (never committed).
 
 ## 📂 Project structure
 
