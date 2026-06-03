@@ -19,7 +19,7 @@ RUN set -eux; \
     for i in $(seq 1 30); do \
         curl -sf http://127.0.0.1:11434/api/tags >/dev/null && break || sleep 1; \
     done; \
-    ollama pull llama3.2:3b; \
+    ollama pull llama3.2:1b; \
     pkill -f "ollama serve" || true; \
     sleep 2
 
@@ -31,7 +31,7 @@ RUN python download_models.py
 
 # Default chat backend points at the in-container Ollama
 ENV OLLAMA_BASE_URL=http://127.0.0.1:11434
-ENV OLLAMA_MODEL=llama3.2:3b
+ENV OLLAMA_MODEL=llama3.2:1b
 
 ENV PORT=8000
 EXPOSE 8000
