@@ -36,6 +36,7 @@ ENV OLLAMA_MODEL=llama3.2:1b
 ENV PORT=8000
 EXPOSE 8000
 
-# Make entrypoint executable and use it (boots Ollama in background, then Flask)
-RUN chmod +x /app/docker-entrypoint.sh
-CMD ["/app/docker-entrypoint.sh"]
+# Make entrypoint executable and use it (boots Ollama in background, then Flask).
+# Strip any CR (Windows CRLF) first so the shebang isn't broken as 'bash\r'.
+RUN sed -i 's/\r$//' /app/docker-entrypoint.sh && chmod +x /app/docker-entrypoint.sh
+CMD ["bash", "/app/docker-entrypoint.sh"]
