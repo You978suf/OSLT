@@ -77,42 +77,48 @@ def ensure_landmarks():
     the container fetches the zip from Blob Storage on cold start and extracts it
     to landmarks/words/. Locally, if the folder already has .npy files this is a
     no-op.
+
+    This function is FULLY fault-tolerant: any failure (no disk space, network,
+    bad zip, missing env var) is caught and logged, and the app continues to
+    start with the avatar simply disabled. It must never raise.
     """
-    words_dir = Path(LANDMARKS_DIR) / "words"
-    if words_dir.exists() and any(words_dir.glob("*.npy")):
-        return True
-    url = os.environ.get("LANDMARKS_BLOB_URL", "").strip()
-    if not url:
-        print(f"[landmarks] Missing {words_dir} and LANDMARKS_BLOB_URL not set — avatar disabled")
-        return False
-    base = Path(LANDMARKS_DIR)
-    base.mkdir(parents=True, exist_ok=True)
-    tmp_zip = base / "_landmarks.zip.part"
     try:
+        words_dir = Path(LANDMARKS_DIR) / "words"
+        if words_dir.exists() and any(words_dir.glob("*.npy")):
+            return True
+        url = os.environ.get("LANDMARKS_BLOB_URL", "").strip()
+        if not url:
+            print(f"[landmarks] Missing {words_dir} and LANDMARKS_BLOB_URL not set — avatar disabled")
+            return False
+        base = Path(LANDMARKS_DIR)
+        base.mkdir(parents=True, exist_ok=True)
+
+        # Download the zip into memory (RAM, not disk) so we never need 2x the
+        # space on the small ephemeral disk — only the extracted files land on disk.
+        import io as _io
+        buf = _io.BytesIO()
         if "blob.core.windows.net" in url:
             print(f"[landmarks] Downloading landmarks from Azure Blob (managed identity)")
             from azure.identity import DefaultAzureCredential
             from azure.storage.blob import BlobClient
             blob = BlobClient.from_blob_url(url, credential=DefaultAzureCredential())
-            with open(tmp_zip, "wb") as out:
-                blob.download_blob(max_concurrency=4).readinto(out)
+            blob.download_blob(max_concurrency=4).readinto(buf)
         else:
             print(f"[landmarks] Downloading landmarks from URL")
             import urllib.request, shutil
-            with urllib.request.urlopen(url, timeout=600) as resp, open(tmp_zip, "wb") as out:
-                shutil.copyfileobj(resp, out, length=1024 * 1024)
-        print(f"[landmarks] Downloaded {tmp_zip.stat().st_size / 1e6:.0f} MB, extracting…")
+            with urllib.request.urlopen(url, timeout=600) as resp:
+                shutil.copyfileobj(resp, buf, length=1024 * 1024)
+        print(f"[landmarks] Downloaded {buf.getbuffer().nbytes / 1e6:.0f} MB, extracting…")
         import zipfile
-        with zipfile.ZipFile(tmp_zip, "r") as z:
+        buf.seek(0)
+        with zipfile.ZipFile(buf, "r") as z:
             z.extractall(base)
-        tmp_zip.unlink()
+        buf.close()
         n = len(list(words_dir.glob("*.npy")))
         print(f"[landmarks] Extracted {n} landmark files to {words_dir}")
         return True
     except Exception as e:
-        print(f"[landmarks] Download/extract failed: {e}")
-        if tmp_zip.exists():
-            tmp_zip.unlink()
+        print(f"[landmarks] Download/extract failed (avatar disabled, app continues): {e}")
         return False
 
 WINDOW_SIZE = 60  # Number of frames to process at once
