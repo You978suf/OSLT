@@ -2,17 +2,17 @@
   <img src="logo.png" alt="JISSR-OM logo" width="160"/>
 </p>
 
-# JISSR-OM - Omani Sign Language Translation System
+# JISSR-OM: Omani Sign Language Translation System
 
-**JISSR-OM** (Joint Integrated Sign Sentence Recognition and Translation System for Omani Sign Language) is a deep-learning system that translates **Omani Sign Language (OSL)** videos into text - recognizing signs at both the **word** and **sentence** level. It addresses the lack of OSL-specific tools and datasets, and is served through a real-time web application.
+**JISSR-OM** (Joint Integrated Sign Sentence Recognition and Translation System for Omani Sign Language) is a deep-learning system that translates **Omani Sign Language (OSL)** videos into text, recognizing signs at both the **word** and **sentence** level. It addresses the lack of OSL-specific tools and datasets, and is served through a real-time web application.
 
-> Final Year Project - Sultan Qaboos University. Supervised by **Dr. Fatma Talib Al Raisi**.
+> Final Year Project, Sultan Qaboos University. Supervised by **Dr. Fatma Talib Al Raisi**.
 
 ---
 
 ## ✨ Highlights
 
-- **Custom OSL dataset:** 10,356 videos from 18 signers covering **798 word signs** and **515 sentence signs** - one of the first corpora of its kind for Omani Sign Language.
+- **Custom OSL dataset:** 10,356 videos from 18 signers covering **798 word signs** and **515 sentence signs**, one of the first corpora of its kind for Omani Sign Language.
 - **Model:** Fine-tuned **Uni-Sign** (ICLR 2025) in PyTorch, with **RTMPose** for pose estimation.
 - **Dataset-quality pipeline:** sign consistency validated with **Pearson correlation**, **Dynamic Time Warping (DTW)**, and **coefficient-of-variation (CV)** metrics.
 - **Validation:** ~35% baseline dev accuracy (benchmarked against the original Uni-Sign paper) and **73% acceptance** from a certified OSL interpreter.
@@ -99,7 +99,7 @@ docker run -p 5000:5000 jissr-om
 ## 📑 Deliverables
 
 - Formal project report (incl. dataset-quality methodology, §4.2.7)
-- UML diagrams - use case, sequence, and class (draw.io)
+- UML diagrams: use case, sequence, and class (draw.io)
 - 11-slide project presentation
 
 ## 🙏 Acknowledgements
