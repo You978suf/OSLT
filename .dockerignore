@@ -1,6 +1,11 @@
 *.pt
 *.pth
+*.npy
 models/
+landmarks/
+landmarks_words/
+landmarks_sentences/
+*.zip
 __pycache__/
 *.pyc
 *.pyo

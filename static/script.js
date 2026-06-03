@@ -93,6 +93,7 @@ const LOGOUT_BTN    = document.getElementById('logout-btn');
 const state = {
   currentPage:    'landing',
   theme:          'light',
+  elServer:       false,   // true when a server-side ElevenLabs key is configured
   accentColor:    '#C8102E',
   textSize:       18,
   hapticOn:       true,
@@ -951,7 +952,7 @@ function startBrowserSTT() {
 async function sendToElevenLabsSTT() {
   const apiKey=document.getElementById('elApiKey')?.value.trim();
   const lang=document.getElementById('sttLang')?.value||'eng';
-  if(!apiKey){setSttBox('Enter ElevenLabs API Key in Settings');if(MIC_STATUS)MIC_STATUS.textContent='API Key required';return;}
+  if(!apiKey&&!state.elServer){setSttBox('Add an ElevenLabs API Key (🔊 Voice API in the header)');if(MIC_STATUS)MIC_STATUS.textContent='API Key required';return;}
   const mime=state.recChunks[0]?.type||'audio/webm';
   const blob=new Blob(state.recChunks,{type:mime});
   const ext=mime.includes('mp4')?'rec.mp4':mime.includes('ogg')?'rec.ogg':'rec.webm';
@@ -1067,8 +1068,13 @@ SPEED_PILLS.forEach(pill=>pill.addEventListener('click',()=>{SPEED_PILLS.forEach
 ───────────────────────────────────────────────────────── */
 async function speak(text,lang='en'){
   const apiKey=document.getElementById('elApiKey')?.value.trim();
+  // 1. ElevenLabs — only if the user pasted their own key (optional premium).
   if(apiKey){try{const r=await fetch(`${API}/tts-elevenlabs`,{method:'POST',headers:{'Content-Type':'application/json', ...authHeader()},body:JSON.stringify({text,api_key:apiKey,voice_id:getVoiceId(),model_id:document.getElementById('elModel')?.value||'eleven_multilingual_v2'})});if(r.ok){new Audio(URL.createObjectURL(await r.blob())).play();return;}}catch(_){}}
+  // 2. Free neural edge-tts (default — natural Omani Arabic, no key).
+  try{const r=await fetch(`${API}/tts-edge`,{method:'POST',headers:{'Content-Type':'application/json', ...authHeader()},body:JSON.stringify({text,lang})});if(r.ok){new Audio(URL.createObjectURL(await r.blob())).play();return;}}catch(_){}
+  // 3. gTTS fallback.
   try{const r=await fetch(`${API}/tts`,{method:'POST',headers:{'Content-Type':'application/json', ...authHeader()},body:JSON.stringify({text,lang})});if(r.ok){new Audio(URL.createObjectURL(await r.blob())).play();return;}}catch(_){}
+  // 4. Browser speech as last resort.
   speakWebSpeech(text,lang);
 }
 function speakWebSpeech(text,lang='en'){if(!('speechSynthesis' in window))return;const u=new SpeechSynthesisUtterance(text);u.lang=/[؀-ۿ]/.test(text)||lang==='ar'?'ar-OM':'en-US';u.rate=0.95;speechSynthesis.cancel();speechSynthesis.speak(u);}
@@ -1286,6 +1292,7 @@ async function loadGoogleClientId() {
     const r = await fetch(`${API}/config`);
     const d = await r.json();
     GOOGLE_CLIENT_ID = d.google_client_id || '';
+    state.elServer = !!d.elevenlabs_available;
   } catch (_) {}
   initGoogleIdentity();
 }

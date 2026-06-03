@@ -75,7 +75,12 @@ ACTIVE_PROCESSORS = {}
 @app.route("/config", methods=["GET"])
 def get_config():
     c = load_config()
-    return jsonify({"google_client_id": c.get("GOOGLE_CLIENT_ID", "YOUR_CLIENT_ID.apps.googleusercontent.com")})
+    return jsonify({
+        "google_client_id": c.get("GOOGLE_CLIENT_ID", "YOUR_CLIENT_ID.apps.googleusercontent.com"),
+        # True when a server-side ElevenLabs key is configured, so the frontend
+        # can use natural TTS/STT without the user pasting their own key.
+        "elevenlabs_available": bool(os.environ.get("ELEVENLABS_API_KEY", "").strip()),
+    })
 
 # ── Auth Routes ───────────────────────────────────────────────────────────────
 
@@ -763,7 +768,8 @@ def tts_elevenlabs():
     try:
         data = request.get_json(force=True)
         text = data.get("text", "").strip()
-        api_key = data.get("api_key", "")
+        # Fall back to the server-side key when the user hasn't pasted their own.
+        api_key = (data.get("api_key") or "").strip() or os.environ.get("ELEVENLABS_API_KEY", "").strip()
         voice_id = data.get("voice_id", "21m00Tcm4TlvDq8ikWAM")
         model_id = data.get("model_id", "eleven_multilingual_v2")
 
@@ -802,7 +808,8 @@ def tts_elevenlabs():
 def stt_elevenlabs():
     import requests as req
     try:
-        api_key = request.form.get("api_key", "")
+        # Fall back to the server-side key when the user hasn't pasted their own.
+        api_key = (request.form.get("api_key") or "").strip() or os.environ.get("ELEVENLABS_API_KEY", "").strip()
         lang = request.form.get("lang", "ara")   # ISO-639-3
         audio = request.files.get("audio")
 
@@ -886,6 +893,43 @@ def avatar_frames(sign_id):
         frames = np.concatenate([arr, z], axis=2).tolist()
     return jsonify({"success": True, "sign_id": sign_id, "format": fmt,
                     "n_frames": len(frames), "frames": frames})
+
+# ── Free neural TTS via Microsoft edge-tts (Omani Arabic) ─────────────────────
+# Default voices: Omani male for Arabic, US male for English. No API key needed.
+EDGE_VOICE_AR = os.environ.get("EDGE_VOICE_AR", "ar-OM-AbdullahNeural")
+EDGE_VOICE_EN = os.environ.get("EDGE_VOICE_EN", "en-US-GuyNeural")
+
+@app.route("/tts-edge", methods=["POST"])
+@require_auth
+def tts_edge():
+    import re as _re
+    import asyncio
+    import edge_tts
+    try:
+        d = request.get_json(force=True)
+        text = (d.get("text") or "").strip()
+        lang = d.get("lang", "ar")
+        if not text:
+            return jsonify({"success": False, "error": "empty"}), 400
+
+        is_arabic = bool(_re.search(r"[؀-ۿ]", text)) or lang == "ar"
+        voice = d.get("voice") or (EDGE_VOICE_AR if is_arabic else EDGE_VOICE_EN)
+
+        async def _synth():
+            buf = io.BytesIO()
+            communicate = edge_tts.Communicate(text, voice)
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    buf.write(chunk["data"])
+            return buf
+
+        buf = asyncio.run(_synth())
+        if buf.getbuffer().nbytes == 0:
+            return jsonify({"success": False, "error": "no audio produced"}), 502
+        buf.seek(0)
+        return send_file(buf, mimetype="audio/mpeg", download_name="tts.mp3")
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 # ── Legacy gTTS fallback ──────────────────────────────────────────────────────
 @app.route("/tts", methods=["POST"])
@@ -1067,7 +1111,8 @@ if Path(CHECKPOINT_PATH).exists():
 else:
     print(f"[Warning] UniSign checkpoint not found at {CHECKPOINT_PATH}")
 
-# Build avatar index
+# Download avatar landmark frames (from blob storage if missing), then index them
+inference.ensure_landmarks()
 inference._build_avatar_index()
 
 if __name__ == "__main__":

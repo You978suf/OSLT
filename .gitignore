@@ -5,11 +5,15 @@ __pycache__/
 *.pyd
 *.so
 
-# ML model weights (downloaded from Azure Blob at runtime)
+# ML model weights + avatar landmarks (downloaded from Azure Blob at runtime)
 *.npy
 *.pt
 *.pth
+*.zip
 models/
+landmarks/
+landmarks_words/
+landmarks_sentences/
 
 # Local secrets / config (use env vars or Azure secrets in production)
 config.json
