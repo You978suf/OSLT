@@ -12,6 +12,7 @@ onnxruntime
 tqdm
 Pillow
 gtts
+edge-tts
 gdown
 requests
 pymysql

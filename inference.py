@@ -70,6 +70,51 @@ def ensure_checkpoint(path=CHECKPOINT_PATH):
             tmp.unlink()
         return False
 
+def ensure_landmarks():
+    """Download + unzip avatar landmark frames from LANDMARKS_BLOB_URL if missing.
+
+    Mirrors ensure_checkpoint: the image ships without the ~333 MB landmark set;
+    the container fetches the zip from Blob Storage on cold start and extracts it
+    to landmarks/words/. Locally, if the folder already has .npy files this is a
+    no-op.
+    """
+    words_dir = Path(LANDMARKS_DIR) / "words"
+    if words_dir.exists() and any(words_dir.glob("*.npy")):
+        return True
+    url = os.environ.get("LANDMARKS_BLOB_URL", "").strip()
+    if not url:
+        print(f"[landmarks] Missing {words_dir} and LANDMARKS_BLOB_URL not set — avatar disabled")
+        return False
+    base = Path(LANDMARKS_DIR)
+    base.mkdir(parents=True, exist_ok=True)
+    tmp_zip = base / "_landmarks.zip.part"
+    try:
+        if "blob.core.windows.net" in url:
+            print(f"[landmarks] Downloading landmarks from Azure Blob (managed identity)")
+            from azure.identity import DefaultAzureCredential
+            from azure.storage.blob import BlobClient
+            blob = BlobClient.from_blob_url(url, credential=DefaultAzureCredential())
+            with open(tmp_zip, "wb") as out:
+                blob.download_blob(max_concurrency=4).readinto(out)
+        else:
+            print(f"[landmarks] Downloading landmarks from URL")
+            import urllib.request, shutil
+            with urllib.request.urlopen(url, timeout=600) as resp, open(tmp_zip, "wb") as out:
+                shutil.copyfileobj(resp, out, length=1024 * 1024)
+        print(f"[landmarks] Downloaded {tmp_zip.stat().st_size / 1e6:.0f} MB, extracting…")
+        import zipfile
+        with zipfile.ZipFile(tmp_zip, "r") as z:
+            z.extractall(base)
+        tmp_zip.unlink()
+        n = len(list(words_dir.glob("*.npy")))
+        print(f"[landmarks] Extracted {n} landmark files to {words_dir}")
+        return True
+    except Exception as e:
+        print(f"[landmarks] Download/extract failed: {e}")
+        if tmp_zip.exists():
+            tmp_zip.unlink()
+        return False
+
 WINDOW_SIZE = 60  # Number of frames to process at once
 STRIDE = 15       # How many frames to slide
 
