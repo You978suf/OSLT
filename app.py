@@ -1104,16 +1104,19 @@ def handle_frame(data):
 # Initialize database
 init_db()
 
-# Load UniSign model on startup (downloads from blob storage if missing)
+# Download avatar landmark frames FIRST so they claim disk space before the
+# large checkpoint + mt5 translation model are fetched. The 8 GiB ephemeral
+# disk can't hold everything; the avatar (Speech -> Sign) is independent of the
+# recognition model, so we prioritise it here. Fully fault-tolerant.
+inference.ensure_landmarks()
+inference._build_avatar_index()
+
+# Load UniSign model on startup (downloads checkpoint + mt5 if missing)
 ensure_checkpoint(CHECKPOINT_PATH)
 if Path(CHECKPOINT_PATH).exists():
     UniSignManager.load(CHECKPOINT_PATH, WORDS_TXT, LABEL_MAP_PATH)
 else:
     print(f"[Warning] UniSign checkpoint not found at {CHECKPOINT_PATH}")
-
-# Download avatar landmark frames (from blob storage if missing), then index them
-inference.ensure_landmarks()
-inference._build_avatar_index()
 
 if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 10000)), debug=False, allow_unsafe_werkzeug=True)
