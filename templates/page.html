@@ -1,11 +1,13 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+{% set lang = lang|default('en') %}
+{% set chrome = chrome|default({'back': 'Back to app', 'updated_label': 'Last updated:', 'footer': '© 2026 JISSR · جِسر · Made in Oman'}) %}
+<html lang="{{ lang }}" dir="{{ 'rtl' if lang == 'ar' else 'ltr' }}" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="{{ title }} — JISSR" />
+  <meta name="description" content="{{ title }} - JISSR" />
   <meta name="theme-color" content="#0b5fae" />
-  <title>{{ title }} — JISSR · جِسر</title>
+  <title>{{ title }} - JISSR · جِسر</title>
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -107,6 +109,12 @@
       font-size: 13px;
       padding: 24px 12px;
     }
+    /* Arabic / RTL */
+    html[lang="ar"] body { font-family: 'Noto Sans Arabic', 'Plus Jakarta Sans', system-ui, sans-serif; }
+    html[dir="rtl"] .top .brand-ar { margin-left: 0; margin-right: 6px; }
+    html[dir="rtl"] .top .home-btn { margin-left: 0; margin-right: auto; }
+    html[dir="rtl"] ul { padding-left: 0; padding-right: 22px; }
+    html[dir="rtl"] .flag-bar { margin-left: 0; margin-right: 8px; }
   </style>
 </head>
 <body>
@@ -115,18 +123,19 @@
     <div>
       <span class="brand-name">JISSR</span><span class="brand-ar">جِسر</span>
     </div>
-    <a href="/" class="home-btn">← Back to app</a>
+    <a href="/" class="home-btn">{{ chrome.back }}</a>
   </header>
   <main>
     <article class="card">
       <h1>{{ title }}</h1>
       {% if subtitle %}<p class="subtitle">{{ subtitle }}</p>{% endif %}
       {{ content|safe }}
-      <div class="meta">Last updated: {{ updated }}</div>
+      <div class="meta">{{ chrome.updated_label }} {{ updated }}</div>
     </article>
   </main>
   <footer>
-    © 2026 JISSR · جِسر · Made in Oman<span class="flag-bar"></span>
+    {{ chrome.footer }}<span class="flag-bar"></span>
   </footer>
+  <script src="{{ url_for('static', filename='help-widget.js') }}?v=1.0"></script>
 </body>
 </html>

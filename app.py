@@ -500,13 +500,108 @@ def get_analytics():
 def index():
     return render_template("index.html")
 
+# Bilingual strings for the standalone auth pages (forgot / reset password).
+# Keys ending in *_js are consumed by the page's inline <script>.
+_FORGOT_STRINGS = {
+    "en": {
+        "page_title": "Forgot password - JISSR · جِسر",
+        "back": "Back to sign in",
+        "h1": "Forgot your password?",
+        "subtitle": "Enter the email address linked to your account and we'll send you a link to reset your password.",
+        "label_email": "Email address",
+        "btn": "Send reset link",
+        "btn_sending": "Sending…",
+        "remembered": "Remembered it?",
+        "back_signin": "Back to sign in",
+        "footer": "© 2026 JISSR · جِسر · Made in Oman",
+        "invalid_email": "Please enter a valid email address.",
+        "success_default": "A reset link has been sent. Check your inbox.",
+        "not_registered": "No account found with that email.",
+        "go_signup": "Go to the sign-up page",
+        "too_many": "Too many requests. Please wait a few minutes and try again.",
+        "generic_error": "Something went wrong. Please try again.",
+        "conn_error": "Connection error. Please check your internet and try again.",
+    },
+    "ar": {
+        "page_title": "نسيت كلمة المرور - JISSR · جِسر",
+        "back": "العودة إلى تسجيل الدخول",
+        "h1": "هل نسيت كلمة المرور؟",
+        "subtitle": "أدخل البريد الإلكتروني المرتبط بحسابك وسنرسل لك رابطاً لإعادة تعيين كلمة المرور.",
+        "label_email": "البريد الإلكتروني",
+        "btn": "إرسال رابط إعادة التعيين",
+        "btn_sending": "جارٍ الإرسال…",
+        "remembered": "تذكّرتها؟",
+        "back_signin": "العودة إلى تسجيل الدخول",
+        "footer": "© 2026 JISSR · جِسر · صُنع في عُمان",
+        "invalid_email": "يُرجى إدخال بريد إلكتروني صحيح.",
+        "success_default": "تم إرسال رابط إعادة التعيين. تحقّق من بريدك الوارد.",
+        "not_registered": "لا يوجد حساب بهذا البريد الإلكتروني.",
+        "go_signup": "اذهب إلى صفحة التسجيل",
+        "too_many": "طلبات كثيرة جداً. يُرجى الانتظار بضع دقائق والمحاولة مجدداً.",
+        "generic_error": "حدث خطأ ما. يُرجى المحاولة مجدداً.",
+        "conn_error": "خطأ في الاتصال. يُرجى التحقق من الإنترنت والمحاولة مجدداً.",
+    },
+}
+
+_RESET_STRINGS = {
+    "en": {
+        "page_title": "Reset password - JISSR · جِسر",
+        "back": "Back to sign in",
+        "h1": "Reset your password",
+        "subtitle": "Choose a new password for your JISSR account. The link expires one hour after it was sent.",
+        "label_new": "New password",
+        "label_confirm": "Confirm new password",
+        "hint": "At least 6 characters.",
+        "show": "Show",
+        "hide": "Hide",
+        "btn": "Update password",
+        "btn_updating": "Updating…",
+        "no_token": "This reset link is missing a token, or you opened the page directly. Please request a new reset email.",
+        "request_reset": "Request reset email",
+        "back_signin": "Back to sign in",
+        "footer": "© 2026 JISSR · جِسر · Made in Oman",
+        "pw_too_short": "Password must be at least 6 characters.",
+        "pw_mismatch": "Passwords do not match.",
+        "success": "✅ Password updated. Redirecting you to sign in…",
+        "too_many": "Too many requests. Please wait a few minutes and try again.",
+        "invalid_expired": "This reset link is invalid or has expired. Please request a new one.",
+        "conn_error": "Connection error. Please try again.",
+    },
+    "ar": {
+        "page_title": "إعادة تعيين كلمة المرور - JISSR · جِسر",
+        "back": "العودة إلى تسجيل الدخول",
+        "h1": "إعادة تعيين كلمة المرور",
+        "subtitle": "اختر كلمة مرور جديدة لحساب جِسر. ينتهي صلاحية الرابط بعد ساعة من إرساله.",
+        "label_new": "كلمة المرور الجديدة",
+        "label_confirm": "تأكيد كلمة المرور الجديدة",
+        "hint": "6 أحرف على الأقل.",
+        "show": "إظهار",
+        "hide": "إخفاء",
+        "btn": "تحديث كلمة المرور",
+        "btn_updating": "جارٍ التحديث…",
+        "no_token": "رابط إعادة التعيين هذا ينقصه الرمز، أو أنك فتحت الصفحة مباشرةً. يُرجى طلب رسالة إعادة تعيين جديدة.",
+        "request_reset": "طلب رسالة إعادة التعيين",
+        "back_signin": "العودة إلى تسجيل الدخول",
+        "footer": "© 2026 JISSR · جِسر · صُنع في عُمان",
+        "pw_too_short": "يجب أن تتكوّن كلمة المرور من 6 أحرف على الأقل.",
+        "pw_mismatch": "كلمتا المرور غير متطابقتين.",
+        "success": "✅ تم تحديث كلمة المرور. يتم تحويلك إلى تسجيل الدخول…",
+        "too_many": "طلبات كثيرة جداً. يُرجى الانتظار بضع دقائق والمحاولة مجدداً.",
+        "invalid_expired": "رابط إعادة التعيين هذا غير صالح أو منتهي الصلاحية. يُرجى طلب رابط جديد.",
+        "conn_error": "خطأ في الاتصال. يُرجى المحاولة مجدداً.",
+    },
+}
+
+
 @app.route("/forgot-password")
 def forgot_password_page():
-    return render_template("forgot_password.html")
+    lang = _info_lang()
+    return render_template("forgot_password.html", lang=lang, t=_FORGOT_STRINGS[lang])
 
 @app.route("/reset-password")
 def reset_password_page():
-    return render_template("reset_password.html")
+    lang = _info_lang()
+    return render_template("reset_password.html", lang=lang, t=_RESET_STRINGS[lang])
 
 # ── Static info pages ─────────────────────────────────────────────────────────
 
@@ -518,12 +613,12 @@ _INFO_PAGES = {
         "content": """
             <p><strong>JISSR</strong> (Arabic: <span lang="ar">جِسر</span>, meaning <em>bridge</em>) is an AI-powered platform that translates Omani Sign Language into spoken Arabic and English in real time, and converts speech back into animated signing.</p>
             <h2>Why we exist</h2>
-            <p>There are tens of thousands of Deaf and Hard-of-Hearing people across the Sultanate of Oman, yet very few public services, schools, or workplaces are equipped to communicate fluently with them. Sign language interpreters are rare; everyday interactions — at a clinic, in a classroom, at a service counter — can quickly become inaccessible.</p>
+            <p>There are tens of thousands of Deaf and Hard-of-Hearing people across the Sultanate of Oman, yet very few public services, schools, or workplaces are equipped to communicate fluently with them. Sign language interpreters are rare; everyday interactions - at a clinic, in a classroom, at a service counter - can quickly become inaccessible.</p>
             <p>JISSR is a step toward closing that gap. By turning a phone or laptop camera into an instant interpreter, we want to make every conversation a two-way street.</p>
             <h2>What we do</h2>
             <ul>
-              <li><strong>Sign → Speech:</strong> Real-time recognition of Omani Sign Language using deep learning (UniSign + RTMPose) — the spoken translation appears on screen and can be read aloud.</li>
-              <li><strong>Speech → Sign:</strong> Spoken or typed Arabic/English is converted into animated signing using an avatar dictionary.</li>
+              <li><strong>Sign to Speech:</strong> Real-time recognition of Omani Sign Language using deep learning (UniSign + RTMPose) - the spoken translation appears on screen and can be read aloud.</li>
+              <li><strong>Speech to Sign:</strong> Spoken or typed Arabic/English is converted into animated signing using an avatar dictionary.</li>
               <li><strong>History & accessibility:</strong> Sessions are saved so users can review past conversations, with high-contrast modes and adjustable text for low-vision users.</li>
             </ul>
             <h2>Our principles</h2>
@@ -541,15 +636,15 @@ _INFO_PAGES = {
         "content": """
             <p>JISSR was developed as a <strong>Final Year Project (FYP)</strong> at the College of Engineering, <strong>Sultan Qaboos University</strong>, Muscat, Oman.</p>
             <h2>Project lead</h2>
-            <p><strong>Yousuf Al-Shaili</strong> — design, machine learning integration, full-stack development.</p>
+            <p><strong>Yousuf Al-Shaili</strong> - design, machine learning integration, full-stack development.</p>
             <h2>Acknowledgements</h2>
             <ul>
-              <li>Sultan Qaboos University — College of Engineering, for academic supervision and resources.</li>
+              <li>Sultan Qaboos University - College of Engineering, for academic supervision and resources.</li>
               <li>The Omani Deaf community, whose contributions to sign language datasets make this work possible.</li>
               <li>Open-source projects relied upon by JISSR: <a href="https://pytorch.org/" rel="noopener" target="_blank">PyTorch</a>, <a href="https://github.com/Tau-J/rtmlib" rel="noopener" target="_blank">RTMLib (RTMPose)</a>, <a href="https://flask.palletsprojects.com/" rel="noopener" target="_blank">Flask</a>, and the broader UniSign research community.</li>
             </ul>
             <h2>Want to join or contribute?</h2>
-            <p>If you're a student, interpreter, or developer interested in sign-language AI for Omani communities, reach out via the <a href="/contact">Contact</a> page — collaborations are very welcome.</p>
+            <p>If you're a student, interpreter, or developer interested in sign-language AI for Omani communities, reach out via the <a href="/contact">Contact</a> page - collaborations are very welcome.</p>
         """,
     },
     "contact": {
@@ -652,14 +747,14 @@ _INFO_PAGES = {
         "subtitle": "Designed for everyone, including users with disabilities.",
         "updated": "May 31, 2026",
         "content": """
-            <p>JISSR is built first and foremost for the <strong>Deaf and Hard-of-Hearing</strong> community. Accessibility is not a bonus feature — it is the entire point. We aim to conform to the <a href="https://www.w3.org/WAI/standards-guidelines/wcag/" rel="noopener" target="_blank">Web Content Accessibility Guidelines (WCAG) 2.1, Level AA</a>.</p>
+            <p>JISSR is built first and foremost for the <strong>Deaf and Hard-of-Hearing</strong> community. Accessibility is not a bonus feature - it is the entire point. We aim to conform to the <a href="https://www.w3.org/WAI/standards-guidelines/wcag/" rel="noopener" target="_blank">Web Content Accessibility Guidelines (WCAG) 2.1, Level AA</a>.</p>
             <h2>Features for accessibility</h2>
             <ul>
               <li><strong>High-contrast mode</strong> and dark/light themes, switchable from settings.</li>
               <li><strong>Adjustable text size</strong> across the interface.</li>
               <li><strong>Keyboard navigation</strong> for all interactive controls.</li>
               <li><strong>ARIA labels</strong> and role attributes for screen-reader compatibility.</li>
-              <li><strong>Visual cues for audio events</strong> (recording status, playback) — no critical information is conveyed by sound alone.</li>
+              <li><strong>Visual cues for audio events</strong> (recording status, playback) - no critical information is conveyed by sound alone.</li>
               <li><strong>Haptic feedback</strong> on supported mobile devices for action confirmation.</li>
               <li><strong>Captions and text output</strong> for every spoken translation.</li>
             </ul>
@@ -671,28 +766,217 @@ _INFO_PAGES = {
               <li>Some animations and modals could better support reduced-motion preferences.</li>
             </ul>
             <h2>Report an accessibility barrier</h2>
-            <p>If something stops you from using JISSR, please tell us — we take accessibility reports as a priority. Email <a href="mailto:mr.yousufalshaaili@gmail.com">mr.yousufalshaaili@gmail.com</a> with what happened and the device/browser you used. We try to respond within a few working days.</p>
+            <p>If something stops you from using JISSR, please tell us - we take accessibility reports as a priority. Email <a href="mailto:mr.yousufalshaaili@gmail.com">mr.yousufalshaaili@gmail.com</a> with what happened and the device/browser you used. We try to respond within a few working days.</p>
         """,
     },
 }
 
+# Arabic (العربية) versions of the info pages. Served when the visitor's
+# language is Arabic (jissr-lang cookie set by the in-app toggle, or ?lang=ar).
+_INFO_PAGES_AR = {
+    "about": {
+        "title": "مهمتنا",
+        "subtitle": "جسرٌ للتواصل مع مجتمع الصُم في عُمان.",
+        "updated": "31 مايو 2026",
+        "content": """
+            <p><strong>جِسر</strong> (بالإنجليزية: <span lang="en">JISSR</span>، وتعني <em>الجسر</em>) منصّةٌ مدعومة بالذكاء الاصطناعي تترجم لغة الإشارة العُمانية إلى عربيةٍ وإنجليزيةٍ منطوقة فورياً، وتحوّل الكلام إلى إشارةٍ متحرّكة.</p>
+            <h2>لماذا نحن موجودون</h2>
+            <p>هناك عشرات الآلاف من الصُم وضعاف السمع في مختلف أنحاء سلطنة عُمان، ومع ذلك فإن قليلاً جداً من الخدمات العامة والمدارس وأماكن العمل مهيأٌ للتواصل معهم بطلاقة. مترجمو لغة الإشارة نادرون؛ والتفاعلات اليومية - في عيادةٍ أو فصلٍ دراسي أو نافذة خدمة - قد تصبح بسرعة غير ميسورة.</p>
+            <p>جِسر خطوةٌ نحو ردم هذه الفجوة. بتحويل كاميرا الهاتف أو الحاسوب إلى مترجمٍ فوري، نريد أن نجعل كل محادثة طريقاً ذا اتجاهين.</p>
+            <h2>ماذا نفعل</h2>
+            <ul>
+              <li><strong>الإشارة إلى الكلام:</strong> تعرّفٌ فوري على لغة الإشارة العُمانية باستخدام التعلّم العميق (UniSign + RTMPose) - تظهر الترجمة المنطوقة على الشاشة ويمكن نطقها بصوتٍ عالٍ.</li>
+              <li><strong>الكلام إلى الإشارة:</strong> يُحوَّل الكلام أو النص بالعربية/الإنجليزية إلى إشارةٍ متحرّكة باستخدام قاموس الأفاتار.</li>
+              <li><strong>السجل وإمكانية الوصول:</strong> تُحفظ الجلسات ليتمكّن المستخدمون من مراجعة المحادثات السابقة، مع أوضاع تباينٍ عالٍ ونصٍّ قابل للضبط لضعاف البصر.</li>
+            </ul>
+            <h2>مبادئنا</h2>
+            <ul>
+              <li><strong>الخصوصية أولاً.</strong> تُعالَج إطارات الفيديو في الذاكرة ثم تُحذف؛ ولا نخزّن التسجيلات بشكلٍ دائم أبداً.</li>
+              <li><strong>شاملٌ بالتصميم.</strong> صُممت الواجهة وفق معايير إتاحة الوصول WCAG 2.1 AA منذ اليوم الأول.</li>
+              <li><strong>منفتحٌ على المجتمع.</strong> جِسر مشروعٌ أكاديمي طُوِّر في <strong>جامعة السلطان قابوس</strong>؛ ونرحّب بملاحظات الصُم والمترجمين والمعلّمين والباحثين.</li>
+            </ul>
+        """,
+    },
+    "team": {
+        "title": "الفريق",
+        "subtitle": "أُنجز كمشروع تخرّج في جامعة السلطان قابوس.",
+        "updated": "31 مايو 2026",
+        "content": """
+            <p>طُوِّر جِسر كـ<strong>مشروع تخرّج</strong> في كلية الهندسة، <strong>جامعة السلطان قابوس</strong>، مسقط، عُمان.</p>
+            <h2>قائد المشروع</h2>
+            <p><strong>يوسف الشعيلي</strong> - التصميم، ودمج التعلّم الآلي، والتطوير الشامل.</p>
+            <h2>شكر وتقدير</h2>
+            <ul>
+              <li>جامعة السلطان قابوس - كلية الهندسة، على الإشراف الأكاديمي والموارد.</li>
+              <li>مجتمع الصُم العُماني، الذي تجعل إسهاماته في بيانات لغة الإشارة هذا العمل ممكناً.</li>
+              <li>المشاريع مفتوحة المصدر التي يعتمد عليها جِسر: <a href="https://pytorch.org/" rel="noopener" target="_blank">PyTorch</a>، و<a href="https://github.com/Tau-J/rtmlib" rel="noopener" target="_blank">RTMLib (RTMPose)</a>، و<a href="https://flask.palletsprojects.com/" rel="noopener" target="_blank">Flask</a>، ومجتمع أبحاث UniSign الأوسع.</li>
+            </ul>
+            <h2>هل تريد الانضمام أو المساهمة؟</h2>
+            <p>إن كنت طالباً أو مترجماً أو مطوّراً مهتماً بالذكاء الاصطناعي للغة الإشارة في المجتمعات العُمانية، تواصل معنا عبر صفحة <a href="/contact">اتصل بنا</a> - التعاون مُرحَّبٌ به للغاية.</p>
+        """,
+    },
+    "contact": {
+        "title": "اتصل بنا",
+        "subtitle": "يسعدنا أن نسمع منك.",
+        "updated": "31 مايو 2026",
+        "content": """
+            <p>للأسئلة أو الملاحظات أو التعاون أو مشكلات إتاحة الوصول، يُرجى التواصل معنا.</p>
+            <div class="contact-card">
+              <div class="label">البريد الإلكتروني</div>
+              <div class="value"><a href="mailto:mr.yousufalshaaili@gmail.com">mr.yousufalshaaili@gmail.com</a></div>
+            </div>
+            <div class="contact-card">
+              <div class="label">المؤسسة</div>
+              <div class="value">جامعة السلطان قابوس<br><span style="font-weight:400;color:var(--muted);font-size:14px;">كلية الهندسة · مسقط، عُمان</span></div>
+            </div>
+            <h2>الإبلاغ عن خللٍ أو مشكلة في إتاحة الوصول</h2>
+            <p>عند مراسلتنا، يُرجى تضمين:</p>
+            <ul>
+              <li>ما الذي كنت تحاول فعله.</li>
+              <li>ما الذي حدث بدلاً من ذلك.</li>
+              <li>الجهاز والمتصفّح اللذان استخدمتهما (مثلاً: iPhone Safari، Windows Chrome).</li>
+            </ul>
+            <p>نحاول الرد خلال أيام عملٍ قليلة.</p>
+        """,
+    },
+    "terms": {
+        "title": "شروط الخدمة",
+        "subtitle": "قواعد استخدام جِسر.",
+        "updated": "31 مايو 2026",
+        "content": """
+            <p>بوصولك إلى <strong>جِسر</strong> (&ldquo;الخدمة&rdquo;) أو استخدامك لها، فإنك توافق على هذه الشروط. وإن لم توافق، فيُرجى عدم استخدام الخدمة.</p>
+            <h2>1. طبيعة الخدمة</h2>
+            <p>جِسر <strong>نموذجٌ أكاديمي أوّلي</strong> طُوِّر كمشروع تخرّج في جامعة السلطان قابوس. ويُقدَّم للاستخدام <strong>التعليمي والبحثي وغير التجاري</strong>. دقّة الترجمة غير مضمونة، ويجب عدم الاعتماد على الخدمة في التواصل الطبي أو القانوني أو الطارئ أو غيره من التواصل الحرج.</p>
+            <h2>2. حسابك</h2>
+            <ul>
+              <li>أنت مسؤولٌ عن الحفاظ على أمان كلمة مرورك.</li>
+              <li>يمكنك تسجيل الدخول عبر البريد الإلكتروني/كلمة المرور أو عبر Google؛ وفي كلتا الحالتين تبقى مسؤولاً عن النشاط في حسابك.</li>
+              <li>يجب أن يكون عمرك 13 عاماً على الأقل للتسجيل، أو أن تحصل على إذن وليّ الأمر.</li>
+            </ul>
+            <h2>3. الاستخدام المقبول</h2>
+            <p>توافق على <strong>عدم</strong> استخدام جِسر من أجل:</p>
+            <ul>
+              <li>رفع أو نقل أو إنشاء محتوى غير قانوني أو ضار أو تشهيري أو جنسي صريح أو ينتهك حقوق الآخرين.</li>
+              <li>محاولة الهندسة العكسية للخدمة أو إساءة استخدامها أو إثقالها.</li>
+              <li>تقديم الترجمات الناتجة عن الخدمة على أنها ترجمةٌ احترافية.</li>
+            </ul>
+            <h2>4. التسجيلات والبيانات</h2>
+            <p>تُعالَج إطارات الفيديو المُرسَلة للتعرّف على الإشارة في الذاكرة وتُحذف فور ذلك. أمّا نصّ الترجمة الذي تختار حفظه فيُخزَّن في سجلّ حسابك ويمكن حذفه في أي وقت. راجع <a href="/privacy">سياسة الخصوصية</a> للتفاصيل.</p>
+            <h2>5. إخلاء المسؤولية عن الضمان</h2>
+            <p>تُقدَّم الخدمة <strong>&ldquo;كما هي&rdquo;</strong>، دون أي ضمانٍ من أي نوع، صريحٍ أو ضمني. ولا نضمن أن تكون الخدمة دون انقطاع أو خالية من الأخطاء أو دقيقة.</p>
+            <h2>6. تحديد المسؤولية</h2>
+            <p>إلى أقصى حدٍّ يسمح به القانون، لن يكون مؤلّفو المشروع وجامعة السلطان قابوس مسؤولين عن أي أضرارٍ غير مباشرة أو عرضية أو خاصة أو تبعية تنشأ عن استخدامك للخدمة.</p>
+            <h2>7. التغييرات</h2>
+            <p>قد نُحدِّث هذه الشروط مع تطوّر المشروع. ويعكس تاريخ &ldquo;آخر تحديث&rdquo; أدناه أحدث مراجعة. واستمرارك في استخدام الخدمة بعد التغييرات يعني قبولك للشروط المُعدَّلة.</p>
+            <h2>8. القانون الحاكم</h2>
+            <p>تخضع هذه الشروط لقوانين <strong>سلطنة عُمان</strong>، دون اعتبارٍ لمبادئ تنازع القوانين.</p>
+        """,
+    },
+    "privacy": {
+        "title": "سياسة الخصوصية",
+        "subtitle": "ما الذي نجمعه، ولماذا، وكيف نحميه.",
+        "updated": "31 مايو 2026",
+        "content": """
+            <p>خصوصيتك تهمّنا. توضّح هذه السياسة البياناتِ التي يجمعها جِسر، وكيف تُستخدم، والخيارات المتاحة لك.</p>
+            <h2>1. البيانات التي نجمعها</h2>
+            <ul>
+              <li><strong>معلومات الحساب:</strong> البريد الإلكتروني والاسم الظاهر عند التسجيل أو تسجيل الدخول عبر Google.</li>
+              <li><strong>رموز المصادقة:</strong> رموز الجلسة المخزّنة في قاعدة بياناتنا لتبقى مُسجَّل الدخول.</li>
+              <li><strong>سجل الترجمة:</strong> النص الناتج عن الترجمات التي تختار حفظها (يمكنك حذفه في أي وقت).</li>
+              <li><strong>أحداث استخدام أساسية:</strong> أعداد طلبات الترجمة، تُستخدم لمراقبة سلامة الخدمة.</li>
+              <li><strong>سجلات تقنية:</strong> سجلات خادمٍ معتادة (عنوان IP، الطابع الزمني، مسار الطلب) تُحفظ لفترةٍ قصيرة لأغراض الأمان.</li>
+            </ul>
+            <h2>2. بياناتٌ <em>لا</em> نخزّنها</h2>
+            <ul>
+              <li><strong>تسجيلات الفيديو.</strong> الإطارات المُرسَلة للتعرّف على الإشارة تُعالَج في ذاكرة الخادم وتُحذف فوراً.</li>
+              <li><strong>التسجيلات الصوتية.</strong> صوت الميكروفون المُستخدم لتحويل الكلام إلى نص يُعالَج في الذاكرة ويُحذف.</li>
+              <li><strong>كلمات المرور كنصٍّ صريح.</strong> تُجزَّأ كلمات المرور باستخدام PBKDF2-SHA256 قبل التخزين.</li>
+            </ul>
+            <h2>3. أين تُخزَّن البيانات</h2>
+            <p>تُخزَّن بيانات الحساب في قاعدة بيانات <strong>MySQL مُدارة على Microsoft Azure</strong> في منطقة <strong>شمال الإمارات (UAE North)</strong>. وتُخزَّن ملفات النماذج الكبيرة في Azure Blob Storage. ونعتمد على تشفير Azure للبيانات أثناء التخزين وبروتوكول TLS أثناء النقل.</p>
+            <h2>4. المشاركة</h2>
+            <p>لا نبيع بياناتك. ولا نشاركها مع أطرافٍ ثالثة إلا حيثما يلزم لتشغيل الخدمة (مثل Microsoft Azure كمزوّد سحابي، وGoogle لتسجيل الدخول عبر OAuth إن اخترته). وقد نُفصِح عن المعلومات إذا أُلزِمنا بطلبٍ قانوني.</p>
+            <h2>5. خياراتك</h2>
+            <ul>
+              <li><strong>حذف حسابك أو سجلّك:</strong> راسلنا على <a href="mailto:mr.yousufalshaaili@gmail.com">mr.yousufalshaaili@gmail.com</a> وسنزيل بياناتك خلال 30 يوماً.</li>
+              <li><strong>إعادة تعيين كلمة المرور:</strong> استخدم رابط &ldquo;نسيت كلمة المرور؟&rdquo; في شاشة تسجيل الدخول.</li>
+              <li><strong>تسجيل الخروج من كل الأجهزة:</strong> يحدث تلقائياً كلما أعدت تعيين كلمة مرورك.</li>
+            </ul>
+            <h2>6. ملفات تعريف الارتباط والتخزين المحلي</h2>
+            <p>يستخدم جِسر التخزين المحلي في متصفّحك لتذكّر رمز المصادقة وتفضيلات الواجهة (السمة، اللون المميز، حجم النص). ولا تُستخدم أي ملفات تعريف ارتباط للإعلانات أو التتبّع من أطرافٍ ثالثة.</p>
+            <h2>7. الأطفال</h2>
+            <p>جِسر غير موجَّهٍ للأطفال دون 13 عاماً. وإن اعتقدت أن طفلاً قد سجّل، فاتصل بنا وسنحذف الحساب.</p>
+            <h2>8. التغييرات على هذه السياسة</h2>
+            <p>إن غيّرنا جوهرياً طريقة تعاملنا مع البيانات، فسنُحدِّث هذه الصفحة ونراجع تاريخ &ldquo;آخر تحديث&rdquo;.</p>
+        """,
+    },
+    "accessibility": {
+        "title": "إمكانية الوصول",
+        "subtitle": "مصمَّمٌ للجميع، بمن فيهم ذوو الإعاقة.",
+        "updated": "31 مايو 2026",
+        "content": """
+            <p>صُمِّم جِسر في المقام الأول لمجتمع <strong>الصُم وضعاف السمع</strong>. إتاحة الوصول ليست ميزةً إضافية - بل هي الهدف بأكمله. ونهدف إلى الامتثال لـ<a href="https://www.w3.org/WAI/standards-guidelines/wcag/" rel="noopener" target="_blank">إرشادات إتاحة محتوى الويب (WCAG) 2.1، المستوى AA</a>.</p>
+            <h2>ميزات إتاحة الوصول</h2>
+            <ul>
+              <li><strong>وضع التباين العالي</strong> والسمات الداكنة/الفاتحة، قابلة للتبديل من الإعدادات.</li>
+              <li><strong>حجم نصٍّ قابل للضبط</strong> عبر الواجهة.</li>
+              <li><strong>التنقّل بلوحة المفاتيح</strong> لجميع عناصر التحكّم التفاعلية.</li>
+              <li><strong>تسميات ARIA</strong> وسمات الأدوار لتوافق قارئات الشاشة.</li>
+              <li><strong>إشارات بصرية للأحداث الصوتية</strong> (حالة التسجيل، التشغيل) - فلا تُنقَل أي معلوماتٍ حرجة بالصوت وحده.</li>
+              <li><strong>الاهتزاز التفاعلي</strong> على الأجهزة المحمولة المدعومة لتأكيد الإجراءات.</li>
+              <li><strong>التسميات التوضيحية والنص</strong> لكل ترجمةٍ منطوقة.</li>
+            </ul>
+            <h2>قيودٌ معروفة</h2>
+            <p>بوصفه نموذجاً أكاديمياً أوّلياً، لا تزال بعض الجوانب بحاجةٍ إلى عمل:</p>
+            <ul>
+              <li>تتفاوت دقّة الترجمة مع الإضاءة وسرعة الإشارة وزاوية الكاميرا.</li>
+              <li>قاموس الأفاتار محدودٌ بمفرداتٍ مبدئية من الإشارات الشائعة.</li>
+              <li>بعض الحركات والنوافذ يمكنها دعم تفضيلات تقليل الحركة بشكلٍ أفضل.</li>
+            </ul>
+            <h2>الإبلاغ عن عائقٍ في إتاحة الوصول</h2>
+            <p>إن منعك شيءٌ من استخدام جِسر، فأخبرنا - نتعامل مع بلاغات إتاحة الوصول كأولوية. راسلنا على <a href="mailto:mr.yousufalshaaili@gmail.com">mr.yousufalshaaili@gmail.com</a> مع ذكر ما حدث والجهاز/المتصفّح الذي استخدمته. ونحاول الرد خلال أيام عملٍ قليلة.</p>
+        """,
+    },
+}
+
+# Static chrome strings on page.html, by language.
+_INFO_CHROME = {
+    "en": {"back": "Back to app", "updated_label": "Last updated:",
+           "footer": "© 2026 JISSR · جِسر · Made in Oman"},
+    "ar": {"back": "العودة إلى التطبيق", "updated_label": "آخر تحديث:",
+           "footer": "© 2026 JISSR · جِسر · صُنع في عُمان"},
+}
+
+
+def _info_lang():
+    """Resolve the language for an info page: ?lang= wins, else the cookie."""
+    lang = (request.args.get("lang") or request.cookies.get("jissr-lang") or "en").lower()
+    return "ar" if lang == "ar" else "en"
+
+
+def _render_info(key):
+    lang = _info_lang()
+    data = (_INFO_PAGES_AR if lang == "ar" else _INFO_PAGES)[key]
+    return render_template("page.html", lang=lang, chrome=_INFO_CHROME[lang], **data)
+
+
 @app.route("/about")
-def info_about(): return render_template("page.html", **_INFO_PAGES["about"])
+def info_about(): return _render_info("about")
 
 @app.route("/team")
-def info_team(): return render_template("page.html", **_INFO_PAGES["team"])
+def info_team(): return _render_info("team")
 
 @app.route("/contact")
-def info_contact(): return render_template("page.html", **_INFO_PAGES["contact"])
+def info_contact(): return _render_info("contact")
 
 @app.route("/terms")
-def info_terms(): return render_template("page.html", **_INFO_PAGES["terms"])
+def info_terms(): return _render_info("terms")
 
 @app.route("/privacy")
-def info_privacy(): return render_template("page.html", **_INFO_PAGES["privacy"])
+def info_privacy(): return _render_info("privacy")
 
 @app.route("/accessibility")
-def info_accessibility(): return render_template("page.html", **_INFO_PAGES["accessibility"])
+def info_accessibility(): return _render_info("accessibility")
 
 # ── Real-time predict (for webcam) ────────────────────────────────────────────
 @app.route("/predict", methods=["POST"])
@@ -955,7 +1239,7 @@ OLLAMA_MODEL    = os.environ.get("OLLAMA_MODEL", "llama3.2")
 
 CHAT_SYSTEM_PROMPT = (
     "You are JISSR's in-app help assistant. Be concise, friendly, and accurate. "
-    "Answer ONLY from the facts in this prompt — never invent UI labels, menus, "
+    "Answer ONLY from the facts in this prompt - never invent UI labels, menus, "
     "buttons, emails, URLs, phone numbers, or social handles. If you don't know, say so.\n\n"
 
     "=== ABOUT JISSR ===\n"
@@ -970,30 +1254,30 @@ CHAT_SYSTEM_PROMPT = (
     "JISSR has NO public website (other than this app), NO phone number, NO WhatsApp, "
     "NO social media accounts. Do not invent any.\n\n"
 
-    "=== FEATURES (use only these names — do not rename) ===\n"
-    "1) Sign → Speech (top-nav 'Sign → Speech'):\n"
+    "=== FEATURES (use only these names - do not rename) ===\n"
+    "1) Sign to Speech (top-nav 'Sign to Speech'):\n"
     "   - INPUT: live camera feed OR an uploaded video file.\n"
     "   - OUTPUT: predicted OSL word shown on screen, with optional text-to-speech.\n"
     "   - Controls on the page: a round red 'Record' button in the middle, an 'Upload' "
     "button on the left, a 'Flip Cam' button on the right.\n"
-    "   - 'Auto-Speak' toggle is on the same page (inside the AI Output panel) — NOT "
+    "   - 'Auto-Speak' toggle is on the same page (inside the AI Output panel) - NOT "
     "in Settings.\n"
     "   - Output panel shows the top prediction, Top-5 predictions, and a history list "
     "with a 'Clear' button.\n"
 
-    "2) Speech → Sign (top-nav 'Speech → Sign'):\n"
+    "2) Speech to Sign (top-nav 'Speech to Sign'):\n"
     "   - INPUT: spoken Arabic or English via your MICROPHONE (or typed text).\n"
     "   - OUTPUT: an animated AVATAR signing the matching OSL signs from a sign dictionary.\n"
-    "   - Speech → Sign does NOT use the camera and does NOT do phoneme analysis — it "
+    "   - Speech to Sign does NOT use the camera and does NOT do phoneme analysis - it "
     "matches recognised words to entries in an avatar/sign dictionary.\n"
 
-    "3) History — past translations saved per signed-in user, with delete and clear.\n"
-    "4) Settings — language, voice, theme (light/dark), accessibility options.\n"
-    "5) Sign in / Sign up — email + password OR Google sign-in. 'Forgot password?' link "
+    "3) History - past translations saved per signed-in user, with delete and clear.\n"
+    "4) Settings - language, voice, theme (light/dark), accessibility options.\n"
+    "5) Sign in / Sign up - email + password OR Google sign-in. 'Forgot password?' link "
     "on the sign-in screen takes the user to /forgot-password, which emails a reset link.\n\n"
 
     "=== PRIVACY ===\n"
-    "Video frames and microphone audio are processed in memory and immediately discarded — "
+    "Video frames and microphone audio are processed in memory and immediately discarded - "
     "they are NEVER stored. Only the text output of translations is saved in History, and "
     "only if the user keeps them. Passwords are hashed (PBKDF2-SHA256).\n\n"
 
@@ -1006,17 +1290,15 @@ CHAT_SYSTEM_PROMPT = (
     "- Reply in the language the user wrote in (English or Arabic).\n"
     "- If a user asks something unrelated to JISSR / OSL / sign language / accessibility, "
     "say briefly that you only help with JISSR and offer to answer a JISSR question.\n"
-    "- You cannot see the user's camera or hear their mic — you are text-only.\n"
-    "- If you don't know a specific OSL sign, suggest trying Sign → Speech live."
+    "- You cannot see the user's camera or hear their mic - you are text-only.\n"
+    "- If you don't know a specific OSL sign, suggest trying Sign to Speech live."
 )
 
 @app.route("/api/chat", methods=["POST"])
 @limiter.limit("30 per minute; 200 per hour")
 def chat():
     import requests as _r
-    user = get_user_from_token(get_auth_token())
-    if not user:
-        return jsonify({"success": False, "error": "Not authenticated"}), 401
+    # The help assistant is public (no user data involved); it stays rate-limited.
     data = request.get_json(force=True, silent=True) or {}
     messages = data.get("messages") or []
     if not isinstance(messages, list) or not messages:

@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=4.6" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=4.8" />
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     /* Safety net: guarantee bright page even if main CSS fails to load */
@@ -62,13 +62,22 @@
 
         <!-- Primary nav (hidden on landing/login) -->
         <nav class="app-nav" id="app-nav" aria-label="Primary" hidden>
-          <a href="#" class="app-nav-link" data-target="sign-to-speech-page" aria-current="false">Sign → Speech</a>
-          <a href="#" class="app-nav-link" data-target="speech-to-sign-page" aria-current="false">Speech → Sign</a>
+          <a href="#" class="app-nav-link" data-target="sign-to-speech-page" aria-current="false">Sign to Speech</a>
+          <a href="#" class="app-nav-link" data-target="speech-to-sign-page" aria-current="false">Speech to Sign</a>
           <a href="#" class="app-nav-link" data-target="history-page" aria-current="false">History</a>
         </nav>
 
         <!-- Right cluster -->
         <div class="header-right">
+
+          <!-- Language toggle (always visible) -->
+          <button class="lang-toggle" id="lang-toggle" type="button" aria-label="التبديل إلى العربية" title="العربية / English">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+            <span id="lang-toggle-label">عربي</span>
+          </button>
 
           <!-- Public CTA (only shown on landing) -->
           <div class="header-public" id="header-public">
@@ -173,14 +182,14 @@
                 <div class="landing-card-icon lc-icon-red">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
                 </div>
-                <div class="landing-card-title">Sign → Speech</div>
+                <div class="landing-card-title">Sign to Speech</div>
                 <div class="landing-card-desc">Camera reads OSL signs and speaks them aloud.</div>
               </div>
               <div class="landing-card landing-card-2">
                 <div class="landing-card-icon lc-icon-green">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
                 </div>
-                <div class="landing-card-title">Speech → Sign</div>
+                <div class="landing-card-title">Speech to Sign</div>
                 <div class="landing-card-desc">3D avatar signs back in real time.</div>
               </div>
             </div>
@@ -267,7 +276,7 @@
 
         <div class="auth-layout">
 
-          <!-- LEFT — Brand panel -->
+          <!-- LEFT - Brand panel -->
           <aside class="auth-brand" aria-hidden="true">
             <div class="auth-brand-logo">
               <img class="auth-brand-mark auth-brand-mark--img" src="{{ url_for('static', filename='logo.png') }}?v=4.2" alt="JISSR logo" width="72" height="72" style="width:72px;height:72px;border-radius:50%;object-fit:contain;background:#fff;padding:4px;" />
@@ -321,7 +330,7 @@
             </div>
           </aside>
 
-          <!-- RIGHT — Form -->
+          <!-- RIGHT - Form -->
           <div class="auth-form-side">
             <div class="auth-form-wrap">
 
@@ -490,7 +499,7 @@
 
         <div class="page-header">
           <span class="page-eyebrow">Live translation</span>
-          <h1 class="page-title">Sign → Speech</h1>
+          <h1 class="page-title">Sign to Speech</h1>
           <p class="page-subtitle">Point your camera at OSL signs JISSR speaks them aloud in real time.</p>
         </div>
 
@@ -704,7 +713,7 @@
                 Recognised speech will appear here…
               </div>
               <button class="btn btn--outline btn--full" id="btnUseText" onclick="useSTTText()" disabled style="margin-top:4px;">
-                Use in Avatar →
+                Use in Avatar
               </button>
             </div>
           </div>
@@ -748,11 +757,11 @@
             </div>
             <div class="stat-card">
               <span class="stat-num" id="hist-s2s-count">0</span>
-              <span class="stat-label">Sign → Speech</span>
+              <span class="stat-label">Sign to Speech</span>
             </div>
             <div class="stat-card">
               <span class="stat-num" id="hist-sp2s-count">0</span>
-              <span class="stat-label">Speech → Sign</span>
+              <span class="stat-label">Speech to Sign</span>
             </div>
           </div>
 
@@ -797,8 +806,8 @@
         <div class="footer-col">
           <h4>Product</h4>
           <ul>
-            <li><a href="#" data-target="sign-to-speech-page">Sign → Speech</a></li>
-            <li><a href="#" data-target="speech-to-sign-page">Speech → Sign</a></li>
+            <li><a href="#" data-target="sign-to-speech-page">Sign to Speech</a></li>
+            <li><a href="#" data-target="speech-to-sign-page">Speech to Sign</a></li>
             <li><a href="#" data-target="history-page">History</a></li>
           </ul>
         </div>
@@ -832,13 +841,13 @@
       <button class="nav-item" data-target="history-page" aria-current="false"><span class="nav-icon">📋</span><span class="nav-label">History</span></button>
     </nav>
 
-    <!-- Page heading (for legacy JS compatibility — hidden) -->
+    <!-- Page heading (for legacy JS compatibility - hidden) -->
     <h1 id="page-heading" class="sr-only" aria-live="polite">JISSR</h1>
 
     <!-- Toast -->
     <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true" aria-hidden="true" hidden></div>
 
-    <!-- ════ VOICE API MODAL (ElevenLabs key — replaces Settings page) ════ -->
+    <!-- ════ VOICE API MODAL (ElevenLabs key - replaces Settings page) ════ -->
     <div class="vm-overlay" id="voice-modal" hidden aria-hidden="true">
       <div class="vm-dialog" role="dialog" aria-modal="true" aria-labelledby="vm-title">
         <div class="vm-header">
@@ -859,7 +868,7 @@
             <option value="EXAVITQu4vr4xnSDxMaL">Bella</option>
             <option value="AZnzlk1XvdvUeBnXmlld">Domi</option>
             <option value="TxGEqnHWrfWFTfGW9XjX">Josh</option>
-            <option value="custom">Custom ID →</option>
+            <option value="custom">Custom ID</option>
           </select>
         </div>
 
@@ -901,7 +910,7 @@
       </div>
       <div id="chat-messages" class="chat-messages" role="log" aria-live="polite">
         <div class="chat-msg chat-msg--bot">
-          <div class="chat-msg-bubble">Hi! I'm the JISSR helper. Ask me how to use Sign → Speech, Speech → Sign, or anything about OSL.</div>
+          <div class="chat-msg-bubble">Hi! I'm the JISSR helper. Ask me how to use Sign to Speech, Speech to Sign, or anything about OSL.</div>
         </div>
       </div>
       <form id="chat-form" class="chat-form" novalidate>
@@ -915,6 +924,7 @@
     </div>
   </div>
 
-  <script src="{{ url_for('static', filename='script.js') }}?v=4.6"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=4.9"></script>
+  <script src="{{ url_for('static', filename='i18n.js') }}?v=1.2"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 /**
- * JISSR — script.js  (v3.0 — Glassmorphism + SQLite Edition)
+ * JISSR - script.js  (v3.0 - Glassmorphism + SQLite Edition)
  * Auth (register/login/guest), history persistence, settings sync to DB.
  */
 'use strict';
@@ -195,7 +195,7 @@ function loadStoredAuth() {
 }
 
 /* ─────────────────────────────────────────────────────────
-   AUTH UI — login/register tabs
+   AUTH UI - login/register tabs
 ───────────────────────────────────────────────────────── */
 document.querySelectorAll('.auth-tab').forEach(tab => {
   tab.addEventListener('click', () => {
@@ -314,7 +314,7 @@ document.getElementById('brand-link')?.addEventListener('click', (e) => {
   navigateTo(state.authToken ? 's2s' : 'landing');
 });
 
-// Mobile menu toggle — clones nav into drawer
+// Mobile menu toggle - clones nav into drawer
 MENU_TOGGLE?.addEventListener('click', () => {
   if (!MOBILE_DRAWER) return;
   const open = MOBILE_DRAWER.classList.toggle('open');
@@ -346,7 +346,15 @@ function openAuth(tab) {
 ['landing-signin-btn','cta-signin-btn','header-signin-btn'].forEach(id =>
   document.getElementById(id)?.addEventListener('click', () => openAuth('login')));
 
-// Confirm-password eye toggle (new — wasn't wired before)
+// Boot to the public landing, or straight to the sign-in panel when the URL is
+// /#login (used by the password pages' "Back to sign in" links).
+function goPublicStart() {
+  const h = (location.hash || '').toLowerCase();
+  if (h === '#login' || h === '#signin') openAuth('login');
+  else navigateTo('landing');
+}
+
+// Confirm-password eye toggle (new - wasn't wired before)
 document.getElementById('toggle-reg-confirm')?.addEventListener('click', () => {
   const p = document.getElementById('reg-confirm-password');
   if (!p) return;
@@ -450,7 +458,7 @@ function enterApp(msg) {
 }
 
 /* ─────────────────────────────────────────────────────────
-   SETTINGS ← DB
+   SETTINGS from DB
 ───────────────────────────────────────────────────────── */
 async function loadSettingsFromDB() {
   if (!state.authToken) return;
@@ -484,7 +492,7 @@ async function saveSettingsToDB(updates) {
 }
 
 /* ─────────────────────────────────────────────────────────
-   HISTORY — save to DB + load history page
+   HISTORY - save to DB + load history page
 ───────────────────────────────────────────────────────── */
 async function saveTranslation(type, inputText, outputText, confidence) {
   if (!state.authToken) return;
@@ -547,7 +555,7 @@ function renderHistoryList(items) {
 
     const content = document.createElement('div');
     content.className = 'hist-content';
-    const output = document.createElement('div'); output.className = 'hist-output'; output.textContent = item.output_text || '—';
+    const output = document.createElement('div'); output.className = 'hist-output'; output.textContent = item.output_text || '-';
     const input  = document.createElement('div'); input.className  = 'hist-input';  input.textContent  = item.input_text  ? 'Input: ' + item.input_text : '';
     content.append(output, input);
 
@@ -619,7 +627,7 @@ function initCamera() {
     .catch(e => {
       const badge = document.getElementById('camBadge');
       if (badge) badge.textContent = 'Camera: ' + e.message;
-      showToast('⚠️ Camera unavailable — simulation mode active');
+      showToast('⚠️ Camera unavailable - simulation mode active');
     });
 }
 
@@ -675,12 +683,12 @@ function showResult(preds) {
   state.currentResult = top; state.lastPredTime = Date.now();
 
   TL_TEXT.classList.add('updating');
-  setTimeout(() => { TL_TEXT.textContent = top.arabic || top.english || '—'; TL_TEXT.classList.remove('updating'); }, 200);
+  setTimeout(() => { TL_TEXT.textContent = top.arabic || top.english || '-'; TL_TEXT.classList.remove('updating'); }, 200);
 
   const nameEl = document.getElementById('op-top-name');
   const enEl   = document.getElementById('op-top-en');
   const dotEl  = document.getElementById('op-dot');
-  if (nameEl) { nameEl.textContent = top.arabic || '—'; nameEl.classList.remove('pop'); void nameEl.offsetWidth; nameEl.classList.add('pop'); }
+  if (nameEl) { nameEl.textContent = top.arabic || '-'; nameEl.classList.remove('pop'); void nameEl.offsetWidth; nameEl.classList.add('pop'); }
   if (enEl)   enEl.textContent = top.english || '';
   if (dotEl)  { dotEl.classList.add('live'); setTimeout(() => dotEl.classList.remove('live'), 3000); }
 
@@ -716,7 +724,7 @@ function renderTop5Panel(preds) {
     rank.textContent = '#' + (p.rank || i + 1);
 
     const words = document.createElement('div'); words.className = 'op-t5-words';
-    const name  = document.createElement('div'); name.className  = 'op-t5-name'; name.textContent = p.arabic  || '—';
+    const name  = document.createElement('div'); name.className  = 'op-t5-name'; name.textContent = p.arabic  || '-';
     const en    = document.createElement('div'); en.className    = 'op-t5-en';   en.textContent   = p.english || '';
     words.append(name, en);
 
@@ -742,7 +750,7 @@ function renderHistPanel() {
     const el = document.createElement('div');
     el.className = 'op-hi-row'; el.dataset.arabic = h.arabic || '';
     const words = document.createElement('div'); words.style.flex = '1'; words.style.minWidth = '0';
-    const name  = document.createElement('div'); name.className = 'op-hi-name'; name.textContent = h.arabic || '—';
+    const name  = document.createElement('div'); name.className = 'op-hi-name'; name.textContent = h.arabic || '-';
     const en    = document.createElement('div'); en.className   = 'op-hi-en';   en.textContent   = h.english || '';
     words.append(name, en);
     const meta = document.createElement('div'); meta.className = 'op-hi-meta';
@@ -783,7 +791,7 @@ async function autoSpeakNow(text, lang) {
       });
       if (r.ok) { new Audio(URL.createObjectURL(await r.blob())).play(); setAutoSpeakStatus('✓ ElevenLabs','speaking'); setTimeout(()=>setAutoSpeakStatus(''),2500); return; }
       throw new Error('ElevenLabs ' + r.status);
-    } catch { setAutoSpeakStatus('ElevenLabs failed — trying fallback…','error'); }
+    } catch { setAutoSpeakStatus('ElevenLabs failed - trying fallback…','error'); }
   } else {
     setAutoSpeakStatus('ℹ️ Add ElevenLabs API Key for natural voice','');
   }
@@ -822,7 +830,7 @@ function stopRecording() {
   if (state.hapticOn && navigator.vibrate) navigator.vibrate([50,30,50]);
   clearTimeout(state.translationTimeout); clearInterval(state.recordInterval); clearInterval(state.translationInterval);
   state.translationTimeout=state.recordInterval=state.translationInterval=null;
-  showToast(`⏹ Stopped — ${formatTime(state.recordSeconds)}`);
+  showToast(`⏹ Stopped - ${formatTime(state.recordSeconds)}`);
 }
 
 function runSimulation() {
@@ -851,7 +859,7 @@ async function uploadVideo(file) {
     const d=await r.json();
     clearInterval(tick); if(fill)fill.style.width='100%';
     if(d.success) {
-      if(lbl)lbl.textContent=`Done — ${d.frames} frames`;
+      if(lbl)lbl.textContent=`Done - ${d.frames} frames`;
       showResult(d.predictions);
       setTimeout(()=>{ if(prog)prog.style.display='none'; if(fill)fill.style.width='0%'; if(videoEl){videoEl.src='';videoEl.loop=false;} state.cameraReady=false; initCamera(); },3000);
     } else { if(lbl)lbl.textContent='Error: '+d.error; setTimeout(()=>{ if(prog)prog.style.display='none'; },3000); }
@@ -878,7 +886,7 @@ PLAY_BTN.addEventListener('click', () => {
 AUTO_SPEAK.addEventListener('change', () => {
   state.isAutoSpeak=AUTO_SPEAK.checked;
   AUTO_SPEAK.closest('.toggle-track').setAttribute('aria-checked',AUTO_SPEAK.checked);
-  if(AUTO_SPEAK.checked){setAutoSpeakStatus('Ready — will speak each new sign');showToast('🔊 Auto-Speak on');}
+  if(AUTO_SPEAK.checked){setAutoSpeakStatus('Ready - will speak each new sign');showToast('🔊 Auto-Speak on');}
   else{setAutoSpeakStatus('');showToast('🔇 Auto-Speak off');}
 });
 
@@ -1015,7 +1023,7 @@ async function startSigning() {
     playNextSign();
     saveTranslation('sp2s', text, text, 0);
   } catch {
-    showToast('⚠️ Server unavailable — using CSS avatar');
+    showToast('⚠️ Server unavailable - using CSS avatar');
     if(btnSign)btnSign.disabled=false;
     animateAvatarFallback(text);
   }
@@ -1027,7 +1035,7 @@ async function playNextSign() {
     const btnSign=document.getElementById('btnSign');
     if(btnSign)btnSign.disabled=false;
     if(AV_STATUS)AV_STATUS.classList.remove('active');
-    if(AV_STATUS_TXT)AV_STATUS_TXT.textContent='Done — ready for new input';
+    if(AV_STATUS_TXT)AV_STATUS_TXT.textContent='Done - ready for new input';
     return;
   }
   const item=state.avQueue[state.avCurrentIdx];
@@ -1068,9 +1076,9 @@ SPEED_PILLS.forEach(pill=>pill.addEventListener('click',()=>{SPEED_PILLS.forEach
 ───────────────────────────────────────────────────────── */
 async function speak(text,lang='en'){
   const apiKey=document.getElementById('elApiKey')?.value.trim();
-  // 1. ElevenLabs — only if the user pasted their own key (optional premium).
+  // 1. ElevenLabs - only if the user pasted their own key (optional premium).
   if(apiKey){try{const r=await fetch(`${API}/tts-elevenlabs`,{method:'POST',headers:{'Content-Type':'application/json', ...authHeader()},body:JSON.stringify({text,api_key:apiKey,voice_id:getVoiceId(),model_id:document.getElementById('elModel')?.value||'eleven_multilingual_v2'})});if(r.ok){new Audio(URL.createObjectURL(await r.blob())).play();return;}}catch(_){}}
-  // 2. Free neural edge-tts (default — natural Omani Arabic, no key).
+  // 2. Free neural edge-tts (default - natural Omani Arabic, no key).
   try{const r=await fetch(`${API}/tts-edge`,{method:'POST',headers:{'Content-Type':'application/json', ...authHeader()},body:JSON.stringify({text,lang})});if(r.ok){new Audio(URL.createObjectURL(await r.blob())).play();return;}}catch(_){}
   // 3. gTTS fallback.
   try{const r=await fetch(`${API}/tts`,{method:'POST',headers:{'Content-Type':'application/json', ...authHeader()},body:JSON.stringify({text,lang})});if(r.ok){new Audio(URL.createObjectURL(await r.blob())).play();return;}}catch(_){}
@@ -1107,7 +1115,7 @@ function saveELSettings(){
 /* ─────────────────────────────────────────────────────────
    SETTINGS PAGE
 ───────────────────────────────────────────────────────── */
-// Theme switching disabled — site is light-only.
+// Theme switching disabled - site is light-only.
 function toggleTheme(){ /* no-op */ }
 function applyTheme(_theme){ HTML.setAttribute('data-theme','light'); state.theme='light'; }
 
@@ -1202,7 +1210,7 @@ function debounce(fn,delay){let t;return(...args)=>{clearTimeout(t);t=setTimeout
 function init(){
   // Restore visual preferences (theme, accent, text size)
   try{
-    // Always start in bright/light theme — user explicitly asked for bright default.
+    // Always start in bright/light theme - user explicitly asked for bright default.
     // The toggle in Settings still works during the session.
     localStorage.removeItem('jissr-theme');
     state.theme='light';
@@ -1230,26 +1238,26 @@ function init(){
           enterApp(null);
         } else {
           clearAuth();
-          navigateTo('landing');
+          goPublicStart();
         }
       })
       .catch(() => {
-        // Backend unreachable — keep them on landing, they can retry signing in
+        // Backend unreachable - keep them on landing, they can retry signing in
         clearAuth();
-        navigateTo('landing');
+        goPublicStart();
       });
   } else {
-    navigateTo('landing');
+    goPublicStart();
   }
 
-  console.log('✅ JISSR v4.0 initialised — strict auth gating active');
+  console.log('✅ JISSR v4.0 initialised - strict auth gating active');
 }
 
 document.addEventListener('DOMContentLoaded', init);
 
 
 /* ═══════════════════════════════════════════════════════════════
-   GOOGLE SIGN-IN  (Google Identity Services — new 2022+ API)
+   GOOGLE SIGN-IN  (Google Identity Services - new 2022+ API)
    ──────────────────────────────────────────────────────────────
    SETUP INSTRUCTIONS:
    1. Go to https://console.cloud.google.com/
@@ -1314,7 +1322,7 @@ function decodeJwtPayload(token) {
 }
 
 /**
- * GIS callback — fired when user completes Google One-Tap or popup flow.
+ * GIS callback - fired when user completes Google One-Tap or popup flow.
  * @param {google.accounts.id.CredentialResponse} response
  */
 async function handleGoogleCredentialResponse(response) {
@@ -1329,7 +1337,7 @@ async function handleGoogleCredentialResponse(response) {
   showToast(`🔄 Signing in as ${name}…`);
 
   try {
-    // Send to backend — backend creates/finds user by email (no server-side Google validation needed for demo,
+    // Send to backend - backend creates/finds user by email (no server-side Google validation needed for demo,
     // but in production you should verify id_token server-side with:
     //   POST https://oauth2.googleapis.com/tokeninfo?id_token=<token>
     const r = await fetch(`${API}/auth/google`, {
@@ -1352,7 +1360,7 @@ async function handleGoogleCredentialResponse(response) {
       }
       enterApp(`✅ Welcome, ${d.user.name}!`);
     } else {
-      // Backend unavailable — create a guest session locally
+      // Backend unavailable - create a guest session locally
       showToast(`✅ Signed in as ${name} (guest session)`);
       saveAuthToken(null, { id: 0, name, email, is_guest: 0 });
       enterApp(null);
@@ -1402,7 +1410,7 @@ APPLE_BTN?.addEventListener('click', () => {
 
 
 /* ═══════════════════════════════════════════════════════════════
-   FORM VALIDATION — real-time client-side validation
+   FORM VALIDATION - real-time client-side validation
    Rules:
      name     : ≥2 chars, letters only
      email    : RFC-compliant regex
@@ -1548,7 +1556,7 @@ function wireRegisterValidation() {
   });
 }
 
-/** Full validation pass before register submit — returns true if all valid */
+/** Full validation pass before register submit - returns true if all valid */
 function validateRegisterForm() {
   const nameEl    = document.getElementById('reg-name');
   const emailEl   = document.getElementById('reg-email');
@@ -1617,7 +1625,7 @@ function setBtnLoading(btnEl, loading) {
 
 
 /* ═══════════════════════════════════════════════════════════════
-   RIPPLE EFFECT — attach to all .btn--primary
+   RIPPLE EFFECT - attach to all .btn--primary
 ══════════════════════════════════════════════════════════════ */
 function attachRipple() {
   // Disabled: previous implementation appended <span class="btn-ripple"> elements
@@ -1673,7 +1681,7 @@ const _originalSaveAuthToken = saveAuthToken;
 
 
 /* ═══════════════════════════════════════════════════════════════
-   INIT ADDITIONS — wire everything up
+   INIT ADDITIONS - wire everything up
 ══════════════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
   wireRegisterValidation();
@@ -1682,7 +1690,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Clear validation state when switching auth tabs.
   // NOTE: the previous implementation derived icon IDs via string-replace and
   // sometimes returned the input's own ID, causing clearFieldState to overwrite
-  // the input's class to "input-icon" (which is display:none) — making the
+  // the input's class to "input-icon" (which is display:none) - making the
   // register fields disappear. Use an explicit map and only touch the input's
   // valid/invalid classes; do not pass an iconId for these forms.
   const AUTH_INPUT_IDS = [
@@ -1730,10 +1738,9 @@ document.getElementById('reg-password')?.addEventListener('focus', () => {
   const history = [];
 
   function refreshVisibility() {
-    const authed = !!state.authToken;
-    const onPublic = PUBLIC_PAGES.has(state.currentPage);
-    widget.hidden = !authed || onPublic;
-    if (widget.hidden && !panel.hidden) closePanel();
+    // Help is available on every page (including the public landing/login),
+    // so the button is always shown.
+    widget.hidden = false;
   }
   const _origNavigateTo = window.navigateTo;
   if (typeof _origNavigateTo === 'function') {
