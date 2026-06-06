@@ -1,14 +1,14 @@
 /*
- * JISSR — style.css (v4.0 — Oman Government Inspired)
+ * JISSR - style.css (v4.0 - Oman Government Inspired)
  * Formal, professional palette: deep red, dark green, gold accents
  * Clean white/cream surfaces, subtle borders, official tone
  */
 
 /* ══════════════════════════════════════════════════════════════
-   1. DESIGN TOKENS — Oman Gov inspired palette
+   1. DESIGN TOKENS - Oman Gov inspired palette
 ══════════════════════════════════════════════════════════════ */
 :root {
-  /* Primary palette — Blue + White with small red accent */
+  /* Primary palette - Blue + White with small red accent */
   --om-blue:       #0b5fae;   /* primary brand blue */
   --om-blue-deep:  #084482;
   --om-blue-soft:  #e3eef9;
@@ -45,7 +45,7 @@
   --space-7: 48px;
   --space-8: 64px;
 
-  /* Radii — square-ish, formal */
+  /* Radii - square-ish, formal */
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
@@ -53,7 +53,7 @@
 }
 
 [data-theme="light"] {
-  /* Surfaces — soft blue-tinted whites */
+  /* Surfaces - soft blue-tinted whites */
   --bg-base:        var(--om-cream);
   --bg-surface:     var(--om-paper);
   --bg-elevated:    var(--om-paper);
@@ -109,14 +109,14 @@
   --vf-corner-color: var(--om-blue);
   --nav-bg: var(--om-paper);
 
-  /* Background — no orbs, just a subtle pattern */
+  /* Background - no orbs, just a subtle pattern */
   --orb1-color: transparent;
   --orb2-color: transparent;
   --orb3-color: transparent;
   --orb4-color: transparent;
 }
 
-/* Dark theme intentionally removed — site is light-only.
+/* Dark theme intentionally removed - site is light-only.
    Any leftover [data-theme="dark"] attribute inherits the light tokens above. */
 
 [data-high-contrast="true"] {
@@ -198,11 +198,11 @@ a:hover { color: var(--om-blue-deep); text-decoration: underline; }
 }
 
 /* ══════════════════════════════════════════════════════════════
-   4. APP SHELL — GOV-STYLE BANNER HEADER
+   4. APP SHELL - GOV-STYLE BANNER HEADER
 ══════════════════════════════════════════════════════════════ */
 .app { display: flex; flex-direction: column; min-height: 100dvh; }
 
-/* Top accent strip (Omani flag — red / white / green) */
+/* Top accent strip (Omani flag - red / white / green) */
 .gov-strip {
   height: 4px;
   background: linear-gradient(90deg, var(--om-red) 0 33.3%, var(--om-paper) 33.3% 66.6%, var(--om-green) 66.6% 100%);
@@ -239,7 +239,7 @@ a:hover { color: var(--om-blue-deep); text-decoration: underline; }
   font-size: 16px;
   letter-spacing: 0.5px;
 }
-/* Image variant — keeps natural circular logo, no bg/shadow tint */
+/* Image variant - keeps natural circular logo, no bg/shadow tint */
 .brand-mark--img {
   background: transparent !important;
   box-shadow: none !important;
@@ -431,7 +431,7 @@ a:hover { color: var(--om-blue-deep); text-decoration: underline; }
 .btn--lg { padding: 14px 28px; font-size: var(--fs-lg); min-height: 52px; }
 .btn--sm { padding: 8px 14px; font-size: var(--fs-sm); min-height: 36px; }
 
-/* Primary — Om red */
+/* Primary - Om red */
 .btn--primary {
   background: var(--om-blue);
   color: #fff;
@@ -444,7 +444,7 @@ a:hover { color: var(--om-blue-deep); text-decoration: underline; }
 }
 .btn--primary:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--om-blue-deep); }
 
-/* Secondary — Om green */
+/* Secondary - Om green */
 .btn--secondary {
   background: var(--om-blue);
   color: #fff;
@@ -456,7 +456,7 @@ a:hover { color: var(--om-blue-deep); text-decoration: underline; }
   box-shadow: 0 3px 0 #074025, 0 6px 16px rgba(17,122,77,.25);
 }
 
-/* Outline — formal */
+/* Outline - formal */
 .btn--outline {
   background: transparent;
   color: var(--text-primary);
@@ -556,7 +556,7 @@ a:hover { color: var(--om-blue-deep); text-decoration: underline; }
 
 
 /* ══════════════════════════════════════════════════════════════
-   7. FORM INPUTS — visible borders, white surface (fixes box bug)
+   7. FORM INPUTS - visible borders, white surface (fixes box bug)
 ══════════════════════════════════════════════════════════════ */
 .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--space-4); }
 .form-label {
@@ -666,7 +666,7 @@ a:hover { color: var(--om-blue-deep); text-decoration: underline; }
 
 
 /* ══════════════════════════════════════════════════════════════
-   8. LANDING PAGE — public marketing
+   8. LANDING PAGE - public marketing
 ══════════════════════════════════════════════════════════════ */
 #landing-page {
   align-items: stretch; padding: 0; position: relative;
@@ -765,7 +765,7 @@ a:hover { color: var(--om-blue-deep); text-decoration: underline; }
 }
 .landing-trust-item svg { color: var(--om-green); }
 
-/* Hero visual — official logo + floating cards */
+/* Hero visual - official logo + floating cards */
 .landing-visual {
   position: relative;
   height: 520px;
@@ -968,7 +968,7 @@ a:hover { color: var(--om-blue-deep); text-decoration: underline; }
 
 
 /* ══════════════════════════════════════════════════════════════
-   9. AUTH PAGE — register/login (NEW formal layout)
+   9. AUTH PAGE - register/login (NEW formal layout)
 ══════════════════════════════════════════════════════════════ */
 #login-page {
   position: relative;
@@ -984,7 +984,7 @@ a:hover { color: var(--om-blue-deep); text-decoration: underline; }
   min-height: calc(100dvh - 76px);
 }
 
-/* LEFT — Brand panel */
+/* LEFT - Brand panel */
 .auth-brand {
   position: relative; overflow: hidden;
   padding: var(--space-7) var(--space-7);
@@ -1099,7 +1099,7 @@ a:hover { color: var(--om-blue-deep); text-decoration: underline; }
 .auth-brand-footer-strip span:nth-child(2) { background: var(--om-red); }
 .auth-brand-footer-strip span:nth-child(3) { background: var(--om-green); }
 
-/* RIGHT — Form side */
+/* RIGHT - Form side */
 .auth-form-side {
   display: flex; align-items: center; justify-content: center;
   padding: var(--space-6) var(--space-5);
@@ -1609,7 +1609,7 @@ a:hover { color: var(--om-blue-deep); text-decoration: underline; }
 
 
 /* ══════════════════════════════════════════════════════════════
-   17. LEGACY INNER-PAGE STYLES — restyle existing markup
+   17. LEGACY INNER-PAGE STYLES - restyle existing markup
 ══════════════════════════════════════════════════════════════ */
 .s2s-layout {
   display: grid;
@@ -2164,7 +2164,7 @@ a:hover { color: var(--om-blue-deep); text-decoration: underline; }
 body:has(.bottom-nav:not([hidden])) .main-content { padding-bottom: 0; }
 
 /* ══════════════════════════════════════════════════════════════
-   MOBILE — extra polish for phones (≤ 720 / ≤ 480)
+   MOBILE - extra polish for phones (≤ 720 / ≤ 480)
 ══════════════════════════════════════════════════════════════ */
 
 /* Prevent iOS Safari from zooming the page when focusing an input */
@@ -2201,7 +2201,7 @@ body:has(.bottom-nav:not([hidden])) .main-content { padding-bottom: 0; }
   .page-header { padding: 16px 12px 12px; }
   .page-title  { font-size: 22px; }
 
-  /* Auth screen — give the card almost the full width */
+  /* Auth screen - give the card almost the full width */
   .auth-form-side  { padding: 16px 10px; }
   .auth-form-wrap  {
     padding: 20px 18px;
@@ -2261,7 +2261,7 @@ html, body { overflow-x: hidden; max-width: 100vw; }
 img, video, canvas { max-width: 100%; height: auto; }
 
 /* ══════════════════════════════════════════════════════════════
-   Oman flag stripe — simple horizontal bar (white / red / green)
+   Oman flag stripe - simple horizontal bar (white / red / green)
 ══════════════════════════════════════════════════════════════ */
 .om-flag-bar {
   display: inline-block;
@@ -2277,7 +2277,7 @@ img, video, canvas { max-width: 100%; height: auto; }
 }
 
 /* ══════════════════════════════════════════════════════════════
-   S2S / SP2S pages — phone polish
+   S2S / SP2S pages - phone polish
 ══════════════════════════════════════════════════════════════ */
 @media (max-width: 720px) {
   /* Tight grid padding so the viewfinder uses screen width */
@@ -2355,7 +2355,7 @@ img, video, canvas { max-width: 100%; height: auto; }
 
 /* On phones force cam-col (camera + record button) to come BEFORE
    the output panel (prediction + auto-speak) regardless of source.
-   Also collapse the grid to a single column here — the desktop
+   Also collapse the grid to a single column here - the desktop
    .s2s-layout rule is declared later in the file, so this late
    override is what actually wins on mobile. */
 @media (max-width: 980px) {
@@ -2481,7 +2481,7 @@ img, video, canvas { max-width: 100%; height: auto; }
 }
 
 /* ══════════════════════════════════════════════════════════════
-   VOICE API MODAL (ElevenLabs key — replaces Settings page)
+   VOICE API MODAL (ElevenLabs key - replaces Settings page)
 ══════════════════════════════════════════════════════════════ */
 .header-voice-btn svg { display: block; }
 
@@ -2531,3 +2531,53 @@ img, video, canvas { max-width: 100%; height: auto; }
   .vm-dialog { padding: 18px 16px; border-radius: 14px; }
   .vm-title { font-size: 17px; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   ARABIC / RTL SUPPORT  (appended last so it overrides earlier rules)
+   Toggled by i18n.js: <html dir="rtl" lang="ar"> + <body class="lang-ar">
+══════════════════════════════════════════════════════════════ */
+
+/* Language toggle button in the header */
+.lang-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 34px; padding: 0 12px;
+  border: 1.5px solid var(--om-blue, #0b5fae);
+  border-radius: 999px; background: #fff;
+  color: var(--om-blue, #0b5fae);
+  font-family: inherit; font-size: 13px; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+  transition: background .15s ease, color .15s ease, transform .15s ease;
+}
+.lang-toggle:hover { background: var(--om-blue, #0b5fae); color: #fff; }
+.lang-toggle:active { transform: scale(.96); }
+.lang-toggle svg { flex: 0 0 auto; }
+.lang-toggle #lang-toggle-label { font-weight: 800; letter-spacing: .2px; }
+
+/* Use the Arabic webfont for the whole UI while Arabic is active */
+body.lang-ar {
+  font-family: 'Noto Sans Arabic', 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+/* Mirror directional iconography so arrows point with the reading flow */
+[dir="rtl"] .btn-arrow,
+[dir="rtl"] .lc-submit-btn .btn-arrow { transform: scaleX(-1); }
+
+/* Numeric/Latin-only fields stay LTR even inside an RTL page */
+[dir="rtl"] input[type="email"],
+[dir="rtl"] input[type="password"],
+[dir="rtl"] input[dir="ltr"],
+[dir="rtl"] .rec-timer,
+[dir="rtl"] .stat-num { direction: ltr; }
+
+/* Keep the auth/email inputs left-aligned for Latin entry */
+[dir="rtl"] input[type="email"],
+[dir="rtl"] input[type="password"] { text-align: right; }
+
+/* Toast slides from the correct edge */
+[dir="rtl"] .toast { left: 20px; right: auto; border-left: none; border-right: 4px solid var(--om-blue); }
+
+/* Help-chat widget stays bottom-right in RTL too, so its pop-up panel
+   (anchored right:0) never opens off the left edge of the screen. */
+[dir="rtl"] .chat-widget { right: 20px; left: auto; }
+[dir="rtl"] .chat-panel { right: 0; left: auto; }
+

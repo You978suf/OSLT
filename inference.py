@@ -306,12 +306,29 @@ class UniSignManager:
 #  RTMPose Extraction Functions
 # ═════════════════════════════════════════════════════════════════════════════
 
+def _pose_device():
+    """Pick the device RTMPose (ONNX Runtime) can actually use.
+
+    torch may report CUDA available while the installed onnxruntime is the
+    CPU-only build. rtmlib treats a requested-but-missing GPU provider as a
+    hard error, so only ask for CUDA when onnxruntime really exposes it.
+    """
+    if DEVICE == "cuda":
+        try:
+            import onnxruntime as ort
+            if "CUDAExecutionProvider" in ort.get_available_providers():
+                return "cuda"
+        except Exception:
+            pass
+    return "cpu"
+
+
 def extract_pose_from_video(video_path):
     """Extract pose keypoints from video using RTMPose"""
     print(f"[RTMPose] Extracting pose from: {video_path}")
-    
+
     backend = "onnxruntime"
-    pose_device = DEVICE if DEVICE == "cuda" else "cpu"
+    pose_device = _pose_device()
     
     wholebody = Wholebody(
         to_openpose=False,
@@ -359,17 +376,17 @@ def extract_pose_from_frames(frames_data):
     Extract pose from a list of frame arrays
     """
     backend = "onnxruntime"
-    pose_device = DEVICE if DEVICE == "cuda" else "cpu"
-    
+    pose_device = _pose_device()
+
     wholebody = Wholebody(
         to_openpose=False,
         mode="lightweight",
         backend=backend,
         device=pose_device,
     )
-    
+
     pose_data = {"keypoints": [], "scores": []}
-    
+
     for frame in frames_data:
         frame = np.uint8(frame)
         keypoints, scores = wholebody(frame)
@@ -404,8 +421,8 @@ class RealtimeProcessor:
     def start(self):
         """Start the real-time processing thread"""
         backend = "onnxruntime"
-        pose_device = DEVICE if DEVICE == "cuda" else "cpu"
-        
+        pose_device = _pose_device()
+
         self.wholebody = Wholebody(
             to_openpose=False,
             mode="lightweight",
