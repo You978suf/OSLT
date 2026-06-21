@@ -1,0 +1,9 @@
+# Caddy gives you automatic HTTPS (free Let's Encrypt cert) for your domain,
+# and transparently proxies WebSocket (SocketIO) traffic to the app — no extra
+# config needed for real-time sign streaming.
+#
+# DOMAIN comes from your .env (e.g. DOMAIN=jissr.example.com).
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy app:8000
+}
