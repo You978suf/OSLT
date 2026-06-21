@@ -68,23 +68,34 @@ just upload the whole folder by SFTP like the model in step 4.)
 
 ## 4. Upload the model + landmarks (the git-ignored big files)
 
-These are NOT in git. Upload them from **your PC** (open a new PowerShell
-window, do NOT run this on the server):
+These are NOT in git. The landmarks are pre-zipped into a single
+`landmarks.zip` (one big file uploads far faster than thousands of small
+ones). Upload both from **your PC** (open a new PowerShell window, do NOT run
+this on the server):
 
 ```powershell
 cd "C:\Users\Yuossf\Desktop\FYP\JSSIR-OM-main\JSSIR-OM-agj"
 
-# 2.35 GB model checkpoint (this takes a while)
+# (If landmarks.zip doesn't exist yet, create it first:)
+#   Compress-Archive -Path 'landmarks\*' -DestinationPath 'landmarks.zip' -Force
+
+# make sure the target folder exists first
+ssh root@YOUR_VPS_IP "mkdir -p /opt/jissr/models /opt/jissr/landmarks"
+
+# 2.2 GB model checkpoint (this takes a while)
 scp models\sentences_best_11pct.pth root@YOUR_VPS_IP:/opt/jissr/models/
 
-# avatar landmark frames (recursive)
-scp -r landmarks\* root@YOUR_VPS_IP:/opt/jissr/landmarks/
+# ~3 GB landmark archive (single file)
+scp landmarks.zip root@YOUR_VPS_IP:/opt/jissr/
 ```
 
-Back on the VPS, make sure the folders exist first if scp complained:
+Then on the VPS, unzip the landmarks into place:
 
 ```bash
-mkdir -p /opt/jissr/models /opt/jissr/landmarks
+apt install -y unzip
+unzip -o /opt/jissr/landmarks.zip -d /opt/jissr/landmarks/
+rm /opt/jissr/landmarks.zip        # optional: reclaim ~3 GB
+ls /opt/jissr/landmarks/           # confirm the frames are there
 ```
 
 ---
