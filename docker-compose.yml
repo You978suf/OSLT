@@ -1,0 +1,49 @@
+# Investor-grade deployment for JISSR.
+# Brings up the app behind Caddy (automatic HTTPS + your custom domain).
+# Models + avatar landmarks live in named volumes so they are downloaded ONCE
+# and survive restarts/redeploys — no multi-minute re-download mid-demo.
+#
+# Usage on any VPS (DigitalOcean / Hetzner / Oracle):
+#   1. Put your secrets in a .env file next to this (see .env.example)
+#   2. docker compose up -d --build
+#   3. Point your domain's DNS A-record at the server's IP
+#
+services:
+  app:
+    build: .
+    restart: unless-stopped          # auto-recover if the process ever crashes
+    env_file: .env
+    environment:
+      - PORT=8000
+    expose:
+      - "8000"                       # internal only; Caddy is the public door
+    volumes:
+      - models:/app/models           # UniSign checkpoint + mT5, downloaded once
+      - landmarks:/app/landmarks      # avatar landmark frames, downloaded once
+    healthcheck:
+      # /health reports model-loaded status (app.py). curl is in the image.
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 360s             # first boot downloads models; give it room
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    env_file: .env                   # provides DOMAIN for the Caddyfile
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data             # persists the Let's Encrypt certificate
+      - caddy_config:/config
+
+volumes:
+  models:
+  landmarks:
+  caddy_data:
+  caddy_config:
