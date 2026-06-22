@@ -254,6 +254,8 @@ function navigateTo(key) {
   Object.values(PAGES).forEach(p => p && p.classList.remove('active'));
   PAGES[key].classList.add('active');
   state.currentPage = key;
+  // Remember the current in-app page so a reload restores it (not always s2s).
+  try { if (!PUBLIC_PAGES.has(key)) localStorage.setItem('jissr-page', key); } catch(_) {}
 
   // Header state
   if (APP_HEADER) APP_HEADER.hidden = false;
@@ -448,10 +450,20 @@ function enterAppOffline(msg) {
   enterApp(msg || '👋 Welcome!');
 }
 
+// The page a reload should land on: the last in-app page the user was viewing,
+// falling back to Sign to Speech.
+function _startPage() {
+  try {
+    const saved = localStorage.getItem('jissr-page');
+    if (saved && PAGES[saved] && !PUBLIC_PAGES.has(saved)) return saved;
+  } catch(_) {}
+  return 's2s';
+}
+
 function enterApp(msg) {
   if (msg) showToast(msg);
   updateHeaderUser(state.user);
-  navigateTo('s2s');
+  navigateTo(_startPage());
   loadELSettings();
   loadSettingsFromDB();
   initCamera();
