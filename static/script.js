@@ -282,8 +282,10 @@ function navigateTo(key) {
 function updateNavActive(activeKey) {
   const map = { s2s:'sign-to-speech-page', sp2s:'speech-to-sign-page', settings:'settings-page', history:'history-page' };
   const targetId = map[activeKey];
-  if (NAV_ITEMS) NAV_ITEMS.forEach(item => item.setAttribute('aria-current', item.dataset.target === targetId ? 'true' : 'false'));
-  if (APP_NAV_LINKS) APP_NAV_LINKS.forEach(a => a.setAttribute('aria-current', a.dataset.target === targetId ? 'true' : 'false'));
+  // Query live: this also covers the cloned links inside the mobile drawer,
+  // which are created after page load and would otherwise stay stale.
+  document.querySelectorAll('.nav-item').forEach(item => item.setAttribute('aria-current', item.dataset.target === targetId ? 'true' : 'false'));
+  document.querySelectorAll('.app-nav-link').forEach(a => a.setAttribute('aria-current', a.dataset.target === targetId ? 'true' : 'false'));
 }
 
 // Legacy bottom-nav items (kept hidden but still functional if shown)
