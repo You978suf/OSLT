@@ -25,6 +25,9 @@ database.db
 server.log
 *.log
 
+# User-donated sign clips (real user data - never commit; back this up separately)
+contributions/
+
 # OS / editor
 Thumbs.db
 .DS_Store
