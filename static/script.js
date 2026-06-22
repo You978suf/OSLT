@@ -279,6 +279,7 @@ function navigateTo(key) {
   if (key !== 's2s'  && state.isRecording)   stopRecording();
   if (key !== 'sp2s' && state.isMicRecording) stopMicSTT();
   if (key === 'history') loadHistoryPage();
+  document.documentElement.classList.remove('booting'); // reveal once the right page is shown
 }
 
 function updateNavActive(activeKey) {
@@ -795,6 +796,8 @@ function setAutoSpeakStatus(msg, cls = '') {
 
 async function autoSpeakNow(text, lang) {
   if (!text) return;
+  const seq = ++_ttsSeq;
+  stopCurrentTTS();
   const apiKey = document.getElementById('elApiKey')?.value.trim();
   if (apiKey) {
     setAutoSpeakStatus('🔊 Speaking via ElevenLabs…', 'speaking');
@@ -803,7 +806,7 @@ async function autoSpeakNow(text, lang) {
         method:'POST', headers:{'Content-Type':'application/json', ...authHeader()},
         body: JSON.stringify({ text, api_key:apiKey, voice_id:getVoiceId(), model_id:document.getElementById('elModel')?.value||'eleven_multilingual_v2' }),
       });
-      if (r.ok) { new Audio(URL.createObjectURL(await r.blob())).play(); setAutoSpeakStatus('✓ ElevenLabs','speaking'); setTimeout(()=>setAutoSpeakStatus(''),2500); return; }
+      if (r.ok) { playTTSBlob(await r.blob(), seq); setAutoSpeakStatus('✓ ElevenLabs','speaking'); setTimeout(()=>setAutoSpeakStatus(''),2500); return; }
       throw new Error('ElevenLabs ' + r.status);
     } catch { setAutoSpeakStatus('ElevenLabs failed - trying fallback…','error'); }
   } else {
@@ -811,9 +814,10 @@ async function autoSpeakNow(text, lang) {
   }
   try {
     const r = await fetch(`${API}/tts`,{method:'POST',headers:{'Content-Type':'application/json', ...authHeader()},body:JSON.stringify({text,lang})});
-    if (r.ok) { new Audio(URL.createObjectURL(await r.blob())).play(); setAutoSpeakStatus('✓ gTTS fallback',''); setTimeout(()=>setAutoSpeakStatus(''),2000); return; }
+    if (r.ok) { playTTSBlob(await r.blob(), seq); setAutoSpeakStatus('✓ gTTS fallback',''); setTimeout(()=>setAutoSpeakStatus(''),2000); return; }
   } catch(_) {}
-  speakWebSpeech(text,lang); setAutoSpeakStatus('✓ Browser TTS',''); setTimeout(()=>setAutoSpeakStatus(''),2000);
+  if(seq===_ttsSeq) speakWebSpeech(text,lang);
+  setAutoSpeakStatus('✓ Browser TTS',''); setTimeout(()=>setAutoSpeakStatus(''),2000);
 }
 
 const renderTop5 = renderTop5Panel;
@@ -1088,16 +1092,33 @@ SPEED_PILLS.forEach(pill=>pill.addEventListener('click',()=>{SPEED_PILLS.forEach
 /* ─────────────────────────────────────────────────────────
    SHARED: speak()
 ───────────────────────────────────────────────────────── */
+// One audio at a time: stop whatever is playing before starting new, so clicking
+// a word twice (or quickly clicking several) never stacks overlapping sounds.
+let _ttsAudio = null, _ttsSeq = 0;
+function stopCurrentTTS() {
+  if (_ttsAudio) { try { _ttsAudio.pause(); _ttsAudio.src = ''; } catch(_) {} _ttsAudio = null; }
+  if ('speechSynthesis' in window) { try { speechSynthesis.cancel(); } catch(_) {} }
+}
+function playTTSBlob(blob, seq) {
+  if (seq !== undefined && seq !== _ttsSeq) return; // superseded by a newer request
+  stopCurrentTTS();
+  const a = new Audio(URL.createObjectURL(blob));
+  _ttsAudio = a;
+  a.addEventListener('ended', () => { if (_ttsAudio === a) _ttsAudio = null; });
+  a.play().catch(() => {});
+}
 async function speak(text,lang='en'){
+  const seq = ++_ttsSeq;
+  stopCurrentTTS();                       // cut off any current sound immediately
   const apiKey=document.getElementById('elApiKey')?.value.trim();
   // 1. ElevenLabs - only if the user pasted their own key (optional premium).
-  if(apiKey){try{const r=await fetch(`${API}/tts-elevenlabs`,{method:'POST',headers:{'Content-Type':'application/json', ...authHeader()},body:JSON.stringify({text,api_key:apiKey,voice_id:getVoiceId(),model_id:document.getElementById('elModel')?.value||'eleven_multilingual_v2'})});if(r.ok){new Audio(URL.createObjectURL(await r.blob())).play();return;}}catch(_){}}
+  if(apiKey){try{const r=await fetch(`${API}/tts-elevenlabs`,{method:'POST',headers:{'Content-Type':'application/json', ...authHeader()},body:JSON.stringify({text,api_key:apiKey,voice_id:getVoiceId(),model_id:document.getElementById('elModel')?.value||'eleven_multilingual_v2'})});if(r.ok){playTTSBlob(await r.blob(), seq);return;}}catch(_){}}
   // 2. Free neural edge-tts (default - natural Omani Arabic, no key).
-  try{const r=await fetch(`${API}/tts-edge`,{method:'POST',headers:{'Content-Type':'application/json', ...authHeader()},body:JSON.stringify({text,lang})});if(r.ok){new Audio(URL.createObjectURL(await r.blob())).play();return;}}catch(_){}
+  try{const r=await fetch(`${API}/tts-edge`,{method:'POST',headers:{'Content-Type':'application/json', ...authHeader()},body:JSON.stringify({text,lang})});if(r.ok){playTTSBlob(await r.blob(), seq);return;}}catch(_){}
   // 3. gTTS fallback.
-  try{const r=await fetch(`${API}/tts`,{method:'POST',headers:{'Content-Type':'application/json', ...authHeader()},body:JSON.stringify({text,lang})});if(r.ok){new Audio(URL.createObjectURL(await r.blob())).play();return;}}catch(_){}
+  try{const r=await fetch(`${API}/tts`,{method:'POST',headers:{'Content-Type':'application/json', ...authHeader()},body:JSON.stringify({text,lang})});if(r.ok){playTTSBlob(await r.blob(), seq);return;}}catch(_){}
   // 4. Browser speech as last resort.
-  speakWebSpeech(text,lang);
+  if(seq===_ttsSeq) speakWebSpeech(text,lang);
 }
 function speakWebSpeech(text,lang='en'){if(!('speechSynthesis' in window))return;const u=new SpeechSynthesisUtterance(text);u.lang=/[؀-ۿ]/.test(text)||lang==='ar'?'ar-OM':'en-US';u.rate=0.95;speechSynthesis.cancel();speechSynthesis.speak(u);}
 function getVoiceId(){const sel=document.getElementById('elVoiceId');return sel?.value==='custom'?(document.getElementById('elVoiceCustom')?.value||''):(sel?.value||'21m00Tcm4TlvDq8ikWAM');}

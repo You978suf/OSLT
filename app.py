@@ -159,6 +159,44 @@ def _get_email_client():
         print(f"[ACS] Failed to init email client: {e}")
         return None, cfg
 
+def _send_email_smtp(to_addr, subject, text_body, html_body=None):
+    """Send an email over SMTP (e.g. Gmail). Returns (ok, error).
+    Configure via config.json / env: SMTP_HOST, SMTP_PORT (default 587),
+    SMTP_USER, SMTP_PASSWORD (Gmail App Password), SMTP_FROM (defaults to user)."""
+    cfg = load_config()
+    host = (cfg.get("SMTP_HOST") or os.environ.get("SMTP_HOST") or "").strip()
+    user = (cfg.get("SMTP_USER") or os.environ.get("SMTP_USER") or "").strip()
+    password = (cfg.get("SMTP_PASSWORD") or os.environ.get("SMTP_PASSWORD") or "").strip()
+    if not host or not user or not password:
+        return False, "SMTP not configured"
+    try:
+        port = int(cfg.get("SMTP_PORT") or os.environ.get("SMTP_PORT") or 587)
+    except (TypeError, ValueError):
+        port = 587
+    sender = (cfg.get("SMTP_FROM") or os.environ.get("SMTP_FROM") or user).strip()
+    import smtplib
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = sender
+    msg["To"] = to_addr
+    msg.attach(MIMEText(text_body, "plain", "utf-8"))
+    if html_body:
+        msg.attach(MIMEText(html_body, "html", "utf-8"))
+    try:
+        if port == 465:
+            server = smtplib.SMTP_SSL(host, port, timeout=20)
+        else:
+            server = smtplib.SMTP(host, port, timeout=20)
+            server.starttls()
+        server.login(user, password)
+        server.sendmail(sender, [to_addr], msg.as_string())
+        server.quit()
+        return True, None
+    except Exception as e:
+        return False, str(e)
+
 def _hash_reset_token(token):
     return hashlib.sha256(token.encode()).hexdigest()
 
@@ -194,36 +232,44 @@ def auth_forgot_password():
         base_url = (cfg.get("APP_BASE_URL") or request.host_url.rstrip("/")).rstrip("/") if cfg else request.host_url.rstrip("/")
         reset_link = f"{base_url}/reset-password?token={raw_token}"
         ok_payload = jsonify({"success": True, "message": f"A reset link has been sent to {email}."})
-        if not client or not sender:
-            print(f"[forgot-password] ACS not configured; reset link: {reset_link}")
-            return ok_payload
-        message = {
-            "senderAddress": sender,
-            "recipients": {"to": [{"address": email, "displayName": user["name"] or "User"}]},
-            "content": {
-                "subject": "Reset your JSSIR-OM password",
-                "plainText": (
-                    f"Hello {user['name'] or 'there'},\n\n"
-                    f"We received a request to reset your password.\n"
-                    f"Click the link below to set a new password (valid for 1 hour):\n\n"
-                    f"{reset_link}\n\n"
-                    f"If you did not request this, you can safely ignore this email.\n"
-                ),
-                "html": (
-                    f"<p>Hello {user['name'] or 'there'},</p>"
-                    f"<p>We received a request to reset your password. "
-                    f"Click the button below to set a new password (link valid for 1 hour):</p>"
-                    f"<p><a href=\"{reset_link}\" style=\"background:#C8102E;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;\">Reset password</a></p>"
-                    f"<p>Or copy this link: <br><code>{reset_link}</code></p>"
-                    f"<p>If you did not request this, you can safely ignore this email.</p>"
-                ),
-            },
-        }
-        try:
-            poller = client.begin_send(message)
-            poller.result(timeout=20)
-        except Exception as e:
-            print(f"[forgot-password] Email send failed: {e}")
+        subject = "Reset your JSSIR-OM password"
+        text_body = (
+            f"Hello {user['name'] or 'there'},\n\n"
+            f"We received a request to reset your password.\n"
+            f"Click the link below to set a new password (valid for 1 hour):\n\n"
+            f"{reset_link}\n\n"
+            f"If you did not request this, you can safely ignore this email.\n"
+        )
+        html_body = (
+            f"<p>Hello {user['name'] or 'there'},</p>"
+            f"<p>We received a request to reset your password. "
+            f"Click the button below to set a new password (link valid for 1 hour):</p>"
+            f"<p><a href=\"{reset_link}\" style=\"background:#C8102E;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;\">Reset password</a></p>"
+            f"<p>Or copy this link: <br><code>{reset_link}</code></p>"
+            f"<p>If you did not request this, you can safely ignore this email.</p>"
+        )
+        sent = False
+        # 1) Azure Communication Services, if configured.
+        if client and sender:
+            try:
+                poller = client.begin_send({
+                    "senderAddress": sender,
+                    "recipients": {"to": [{"address": email, "displayName": user["name"] or "User"}]},
+                    "content": {"subject": subject, "plainText": text_body, "html": html_body},
+                })
+                poller.result(timeout=20)
+                sent = True
+            except Exception as e:
+                print(f"[forgot-password] ACS send failed: {e}")
+        # 2) SMTP fallback (e.g. Gmail), if configured.
+        if not sent:
+            ok, err = _send_email_smtp(email, subject, text_body, html_body)
+            if ok:
+                sent = True
+            else:
+                print(f"[forgot-password] SMTP send failed/unconfigured: {err}")
+        if not sent:
+            print(f"[forgot-password] No email backend configured; reset link: {reset_link}")
         return ok_payload
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
