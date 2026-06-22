@@ -149,8 +149,8 @@
     "Recognised speech will appear here…": "سيظهر الكلام المُتعرَّف عليه هنا…",
     "Use in Avatar": "استخدم في الأفاتار",
     "Type what the hearing person says": "اكتب ما يقوله الشخص السامع",
-    "Please type in Arabic — the signing avatar supports Arabic words only. English is not available yet.":
-      "الرجاء الكتابة بالعربية — الأفاتار يدعم الكلمات العربية فقط. الإنجليزية غير متاحة بعد.",
+    "Please type in Arabic - the signing avatar supports Arabic words only. English is not available yet.":
+      "الرجاء الكتابة بالعربية - الأفاتار يدعم الكلمات العربية فقط. الإنجليزية غير متاحة بعد.",
     "Hello, how can I help you today?…": "مرحباً، كيف يمكنني مساعدتك اليوم؟…",
     "Translate to Sign Language": "ترجم إلى لغة الإشارة",
     "Heard:": "المسموع:",
