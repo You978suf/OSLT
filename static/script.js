@@ -1240,25 +1240,24 @@ function init(){
   if(TEXT_SIZE_SL){const pct=((TEXT_SIZE_SL.value-14)/(28-14))*100;TEXT_SIZE_SL.style.backgroundSize=`${pct}% 100%`;}
   window.addEventListener('resize',resizeAvCanvas);
 
-  // Strict auth gate: try to restore a session; if missing/expired, drop to public landing
+  // Strict auth gate: if a session is stored, enter the app immediately so a
+  // reload lands straight on the saved page (no home-page flash), then verify
+  // the token in the background and drop to public only if it was rejected.
   if (loadStoredAuth()) {
-    // Verify the stored token still works server-side before letting them into the app
+    enterApp(null);
     fetch(`${API}/auth/me`, { headers: authHeader() })
-      .then(r => r.ok ? r.json() : { success: false })
+      .then(r => r.status === 401 ? { success: false, _rejected: true } : (r.ok ? r.json() : null))
       .then(d => {
-        if (d.success && d.user) {
+        if (d && d.success && d.user) {
           state.user = d.user;
           updateHeaderUser(d.user);
-          enterApp(null);
-        } else {
+        } else if (d && d._rejected) {
           clearAuth();
           goPublicStart();
         }
       })
       .catch(() => {
-        // Backend unreachable - keep them on landing, they can retry signing in
-        clearAuth();
-        goPublicStart();
+        // Backend unreachable - keep the cached session and stay in the app.
       });
   } else {
     goPublicStart();
