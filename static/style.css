@@ -2404,6 +2404,9 @@ img, video, canvas { max-width: 100%; height: auto; }
   overflow: hidden;
   animation: chatPop .18s ease-out;
 }
+/* Respect the `hidden` attribute — the display:flex above would otherwise
+   override the UA [hidden]{display:none} rule, leaving the panel stuck open. */
+.chat-panel[hidden] { display: none; }
 @keyframes chatPop { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
 .chat-header {
