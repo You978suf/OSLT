@@ -721,7 +721,11 @@
           <div class="tab-panel hidden" id="tabpanel-kbd" role="tabpanel" aria-labelledby="tab-kbd">
             <div class="kbd-section">
               <label class="form-label" for="avText">Type what the hearing person says</label>
-              <textarea class="form-input form-textarea" id="avText" placeholder="Hello, how can I help you today?…" rows="3"></textarea>
+              <p class="kbd-hint" style="margin:4px 0 10px;font-size:13px;line-height:1.5;color:var(--om-red,#C8102E);display:flex;gap:6px;align-items:flex-start;">
+                <span aria-hidden="true">⚠️</span>
+                <span>Please type in Arabic — the signing avatar supports Arabic words only. English is not available yet.</span>
+              </p>
+              <textarea class="form-input form-textarea" id="avText" placeholder="اكتب بالعربية هنا… مثلاً: مرحبا، كيف حالك؟" dir="rtl" rows="3"></textarea>
               <button class="btn btn--primary btn--full" id="btnSign" onclick="startSigning()">
                 <span aria-hidden="true">🤟</span> Translate to Sign Language
               </button>
@@ -925,6 +929,6 @@
   </div>
 
   <script src="{{ url_for('static', filename='script.js') }}?v=4.9"></script>
-  <script src="{{ url_for('static', filename='i18n.js') }}?v=1.2"></script>
+  <script src="{{ url_for('static', filename='i18n.js') }}?v=1.3"></script>
 </body>
 </html>
