@@ -1655,6 +1655,7 @@ a:hover { color: var(--om-blue-deep); text-decoration: underline; }
   color: rgba(255,255,255,.85);
   pointer-events: none;
 }
+.viewfinder.camera-active .vf-guide { display: none; }
 .vf-guide-icon { font-size: 56px; opacity: .85; }
 .vf-guide-title { font-size: 16px; font-weight: 700; }
 .vf-guide-sub { font-size: 13px; opacity: .65; }
