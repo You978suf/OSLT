@@ -227,7 +227,14 @@ class UniSignManager:
             # Load UniSign model
             cls._model = Uni_Sign(args=cls._args)
             
-            ckpt = torch.load(str(c), map_location="cpu")
+            # Prefer the safe loader (tensors only). Fall back to a full load for
+            # older checkpoints that also pickle non-tensor objects (e.g. args).
+            # Safe here: the checkpoint comes from our own Azure Blob over HTTPS.
+            try:
+                ckpt = torch.load(str(c), map_location="cpu", weights_only=True)
+            except Exception as _wo_err:
+                print(f"  [Info] weights_only load failed, retrying full load: {_wo_err}")
+                ckpt = torch.load(str(c), map_location="cpu", weights_only=False)
             state_dict = ckpt.get("model", ckpt)
             
             missing, unexpected = cls._model.load_state_dict(state_dict, strict=False)

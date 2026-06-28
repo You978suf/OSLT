@@ -51,22 +51,35 @@ app.config.update(
     SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_SAMESITE="Lax",
 )
-CORS(app)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+# Trust X-Forwarded-* from a known number of reverse-proxy hops (Caddy = 1) so
+# rate limiting keys on the real client IP rather than a client-spoofable header.
+# Set TRUSTED_PROXY_HOPS=0 when running with no proxy directly in front.
+_PROXY_HOPS = int(os.environ.get("TRUSTED_PROXY_HOPS", "1"))
+if _PROXY_HOPS > 0:
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=_PROXY_HOPS, x_proto=_PROXY_HOPS, x_host=_PROXY_HOPS)
 
-def _rate_key():
-    fwd = request.headers.get("X-Forwarded-For", "")
-    if fwd:
-        return fwd.split(",")[0].strip()
-    return get_remote_address()
+# Restrict cross-origin access to an explicit allowlist (comma-separated origins
+# in ALLOWED_ORIGINS). The bundled frontend is same-origin, so the secure default
+# is "no cross-origin" — set ALLOWED_ORIGINS only if the UI is hosted elsewhere.
+_ALLOWED_ORIGINS = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "").split(",") if o.strip()]
+if _ALLOWED_ORIGINS:
+    CORS(app, origins=_ALLOWED_ORIGINS)
+socketio = SocketIO(app, cors_allowed_origins=(_ALLOWED_ORIGINS or None), async_mode='threading')
 
 limiter = Limiter(
-    key_func=_rate_key,
+    key_func=get_remote_address,
     app=app,
     default_limits=[],
     storage_uri="memory://",
     headers_enabled=True,
 )
+
+def _server_error(e):
+    """Log the real exception server-side; return a generic message to clients.
+    Avoids leaking internal/SQL details in API responses."""
+    app.logger.exception("Unhandled server error: %s", e)
+    return jsonify({"success": False, "error": "Internal server error"}), 500
 
 ACTIVE_PROCESSORS = {}
 
@@ -111,7 +124,7 @@ def auth_register():
     except pymysql.err.IntegrityError:
         return jsonify({"success": False, "error": "Email already registered"}), 400
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _server_error(e)
 
 @app.route("/auth/login", methods=["POST"])
 @limiter.limit("10 per minute; 60 per hour")
@@ -138,7 +151,7 @@ def auth_login():
         conn.close()
         return jsonify({"success": True, "token": token, "user": _user_json(user)})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _server_error(e)
 
 _email_client_cache = {"client": None, "conn": None}
 
@@ -272,7 +285,7 @@ def auth_forgot_password():
             print(f"[forgot-password] No email backend configured; reset link: {reset_link}")
         return ok_payload
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _server_error(e)
 
 @app.route("/auth/reset-password", methods=["POST"])
 @limiter.limit("10 per hour; 30 per day")
@@ -305,7 +318,7 @@ def auth_reset_password():
         conn.close()
         return jsonify({"success": True, "message": "Password updated. Please sign in with your new password."})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _server_error(e)
 
 @app.route("/auth/guest", methods=["POST"])
 def auth_guest():
@@ -322,7 +335,7 @@ def auth_guest():
         conn.close()
         return jsonify({"success": True, "token": token, "user": {"id": uid, "name": "Guest", "email": None, "is_guest": 1}})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _server_error(e)
 
 @app.route("/auth/logout", methods=["POST"])
 def auth_logout():
@@ -370,7 +383,7 @@ def get_history():
         conn.close()
         return jsonify({"success": True, "history": rows})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _server_error(e)
 
 @app.route("/history", methods=["POST"])
 def add_history():
@@ -391,7 +404,7 @@ def add_history():
         conn.close()
         return jsonify({"success": True, "id": row_id})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _server_error(e)
 
 @app.route("/history/<int:hid>", methods=["DELETE"])
 def delete_history_item(hid):
@@ -405,7 +418,7 @@ def delete_history_item(hid):
         conn.close()
         return jsonify({"success": True})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _server_error(e)
 
 @app.route("/history/clear", methods=["DELETE"])
 def clear_history():
@@ -419,7 +432,7 @@ def clear_history():
         conn.close()
         return jsonify({"success": True})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _server_error(e)
 
 # ── Settings Routes ───────────────────────────────────────────────────────────
 
@@ -437,7 +450,7 @@ def get_settings():
         conn.close()
         return jsonify({"success": True, "settings": s})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _server_error(e)
 
 @app.route("/settings", methods=["POST"])
 def save_settings():
@@ -459,7 +472,7 @@ def save_settings():
             conn.close()
         return jsonify({"success": True})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _server_error(e)
 
 @app.route("/auth/google", methods=["POST"])
 @limiter.limit("10 per minute; 60 per hour")
@@ -482,7 +495,8 @@ def auth_google():
             return jsonify({"success": False, "error": "Invalid Google token"}), 401
         info = resp.json()
     except Exception as e:
-        return jsonify({"success": False, "error": f"Token verification failed: {e}"}), 500
+        app.logger.exception("Google token verification failed: %s", e)
+        return jsonify({"success": False, "error": "Token verification failed"}), 500
 
     cfg = load_config()
     expected_client_id = cfg.get("GOOGLE_CLIENT_ID", "") or ""
@@ -519,7 +533,7 @@ def auth_google():
         conn.close()
         return jsonify({"success": True, "token": token, "user": _user_json(user)})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _server_error(e)
 
 @app.route("/analytics", methods=["GET"])
 def get_analytics():
@@ -538,7 +552,7 @@ def get_analytics():
         conn.close()
         return jsonify({"success": True, "analytics": {"total": total, "s2s_count": s2s, "sp2s_count": sp2s}})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _server_error(e)
 
 # ── General Routes ────────────────────────────────────────────────────────────
 
@@ -1058,7 +1072,7 @@ def predict():
         return jsonify({"success": True, "predictions": preds})
         
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _server_error(e)
 
 # ── Video-file predict ────────────────────────────────────────────────────────
 @app.route("/predict-video", methods=["POST"])
@@ -1073,22 +1087,27 @@ def predict_video():
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
             file.save(tmp.name)
             tmp_path = tmp.name
-        
-        pose_data = extract_pose_from_video(tmp_path)
-        if not pose_data or len(pose_data['keypoints']) == 0:
-            os.unlink(tmp_path)
-            return jsonify({"success": False, "error": "No pose detected"}), 400
-        
-        preds = UniSignManager.predict_from_pose(pose_data, tmp_path, top_k=5)
-        os.unlink(tmp_path)
-        return jsonify({
-            "success": True,
-            "predictions": preds,
-            "frames": len(pose_data['keypoints'])
-        })
-        
+
+        try:
+            pose_data = extract_pose_from_video(tmp_path)
+            if not pose_data or len(pose_data['keypoints']) == 0:
+                return jsonify({"success": False, "error": "No pose detected"}), 400
+
+            preds = UniSignManager.predict_from_pose(pose_data, tmp_path, top_k=5)
+            return jsonify({
+                "success": True,
+                "predictions": preds,
+                "frames": len(pose_data['keypoints'])
+            })
+        finally:
+            # Always remove the temp upload, even if pose extraction/predict throws.
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _server_error(e)
 
 # ── ElevenLabs TTS ────────────────────────────────────────────────────────────
 @app.route("/tts-elevenlabs", methods=["POST"])
@@ -1130,7 +1149,7 @@ def tts_elevenlabs():
         return send_file(io.BytesIO(resp.content), mimetype="audio/mpeg",
                          download_name="tts.mp3")
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _server_error(e)
 
 # ── ElevenLabs STT (Scribe) ───────────────────────────────────────────────────
 @app.route("/stt-elevenlabs", methods=["POST"])
@@ -1165,7 +1184,7 @@ def stt_elevenlabs():
         return jsonify({"success": True, "transcript": transcript})
 
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _server_error(e)
 
 # ── Avatar: word list ─────────────────────────────────────────────────────────
 @app.route("/avatar/words")
@@ -1259,7 +1278,7 @@ def tts_edge():
         buf.seek(0)
         return send_file(buf, mimetype="audio/mpeg", download_name="tts.mp3")
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _server_error(e)
 
 # ── Legacy gTTS fallback ──────────────────────────────────────────────────────
 @app.route("/tts", methods=["POST"])
@@ -1277,7 +1296,7 @@ def tts_gtts():
         buf.seek(0)
         return send_file(buf, mimetype="audio/mpeg", download_name="s.mp3")
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _server_error(e)
 
 # ── Chatbot (Ollama) ──────────────────────────────────────────────────────────
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
@@ -1373,7 +1392,7 @@ def chat():
     except _r.exceptions.Timeout:
         return jsonify({"success": False, "error": "Help assistant took too long to reply. Please try again."}), 504
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _server_error(e)
 
 # ── Health ────────────────────────────────────────────────────────────────────
 @app.route("/health")
