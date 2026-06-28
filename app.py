@@ -5,7 +5,6 @@ import os
 import sys
 import secrets
 import hashlib
-import sqlite3 # Kept for backward references if any, but pymysql is used primarily now
 import pymysql
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -25,7 +24,6 @@ from database import (
     get_db,
     require_auth,
     get_auth_token,
-    get_user_from_token,
     _user_json,
     load_config
 )
@@ -81,6 +79,15 @@ def _server_error(e):
     app.logger.exception("Unhandled server error: %s", e)
     return jsonify({"success": False, "error": "Internal server error"}), 500
 
+def _start_session(cursor, user_id, lifetime=timedelta(days=30)):
+    """Create a session token (and ensure a settings row) for a user and return
+    the token. Must be called inside an open cursor/transaction."""
+    token = secrets.token_hex(32)
+    exp = (datetime.now() + lifetime).strftime("%Y-%m-%d %H:%M:%S")
+    cursor.execute("INSERT INTO sessions (token,user_id,expires_at) VALUES (%s,%s,%s)", (token, user_id, exp))
+    cursor.execute("INSERT IGNORE INTO user_settings (user_id) VALUES (%s)", (user_id,))
+    return token
+
 ACTIVE_PROCESSORS = {}
 
 # ── Dynamic Config Route ──────────────────────────────────────────────────────
@@ -115,10 +122,7 @@ def auth_register():
             cursor.execute("INSERT INTO users (email,password_hash,name) VALUES (%s,%s,%s)", (email, pw_hash, name))
             cursor.execute("SELECT * FROM users WHERE email=%s", (email,))
             user = cursor.fetchone()
-            token = secrets.token_hex(32)
-            exp = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
-            cursor.execute("INSERT INTO sessions (token,user_id,expires_at) VALUES (%s,%s,%s)", (token, user["id"], exp))
-            cursor.execute("INSERT IGNORE INTO user_settings (user_id) VALUES (%s)", (user["id"],))
+            token = _start_session(cursor, user["id"])
         conn.close()
         return jsonify({"success": True, "token": token, "user": _user_json(user)})
     except pymysql.err.IntegrityError:
@@ -144,10 +148,7 @@ def auth_login():
                 conn.close()
                 return jsonify({"success": False, "error": "Invalid email or password"}), 401
             user = row
-            token = secrets.token_hex(32)
-            exp = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
-            cursor.execute("INSERT INTO sessions (token,user_id,expires_at) VALUES (%s,%s,%s)", (token, user["id"], exp))
-            cursor.execute("INSERT IGNORE INTO user_settings (user_id) VALUES (%s)", (user["id"],))
+            token = _start_session(cursor, user["id"])
         conn.close()
         return jsonify({"success": True, "token": token, "user": _user_json(user)})
     except Exception as e:
@@ -328,10 +329,7 @@ def auth_guest():
             cursor.execute("INSERT INTO users (name,is_guest) VALUES ('Guest',1)")
             cursor.execute("SELECT LAST_INSERT_ID()")
             uid = cursor.fetchone()["LAST_INSERT_ID()"]
-            token = secrets.token_hex(32)
-            exp = (datetime.now() + timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S")
-            cursor.execute("INSERT INTO sessions (token,user_id,expires_at) VALUES (%s,%s,%s)", (token, uid, exp))
-            cursor.execute("INSERT IGNORE INTO user_settings (user_id) VALUES (%s)", (uid,))
+            token = _start_session(cursor, uid, timedelta(hours=24))
         conn.close()
         return jsonify({"success": True, "token": token, "user": {"id": uid, "name": "Guest", "email": None, "is_guest": 1}})
     except Exception as e:
@@ -351,19 +349,16 @@ def auth_logout():
     return jsonify({"success": True})
 
 @app.route("/auth/me", methods=["GET"])
+@require_auth
 def auth_me():
-    user = get_user_from_token(get_auth_token())
-    if not user:
-        return jsonify({"success": False, "error": "Not authenticated"}), 401
-    return jsonify({"success": True, "user": _user_json(user)})
+    return jsonify({"success": True, "user": _user_json(request.user)})
 
 # ── History Routes ────────────────────────────────────────────────────────────
 
 @app.route("/history", methods=["GET"])
+@require_auth
 def get_history():
-    user = get_user_from_token(get_auth_token())
-    if not user:
-        return jsonify({"success": False, "error": "Not authenticated"}), 401
+    user = request.user
     type_filter = request.args.get("type", "all")
     limit = min(int(request.args.get("limit", 100)), 500)
     try:
@@ -386,10 +381,9 @@ def get_history():
         return _server_error(e)
 
 @app.route("/history", methods=["POST"])
+@require_auth
 def add_history():
-    user = get_user_from_token(get_auth_token())
-    if not user:
-        return jsonify({"success": False, "error": "Not authenticated"}), 401
+    user = request.user
     data = request.get_json(force=True)
     try:
         conn = get_db()
@@ -407,10 +401,9 @@ def add_history():
         return _server_error(e)
 
 @app.route("/history/<int:hid>", methods=["DELETE"])
+@require_auth
 def delete_history_item(hid):
-    user = get_user_from_token(get_auth_token())
-    if not user:
-        return jsonify({"success": False, "error": "Not authenticated"}), 401
+    user = request.user
     try:
         conn = get_db()
         with conn.cursor() as cursor:
@@ -421,10 +414,9 @@ def delete_history_item(hid):
         return _server_error(e)
 
 @app.route("/history/clear", methods=["DELETE"])
+@require_auth
 def clear_history():
-    user = get_user_from_token(get_auth_token())
-    if not user:
-        return jsonify({"success": False, "error": "Not authenticated"}), 401
+    user = request.user
     try:
         conn = get_db()
         with conn.cursor() as cursor:
@@ -437,10 +429,9 @@ def clear_history():
 # ── Settings Routes ───────────────────────────────────────────────────────────
 
 @app.route("/settings", methods=["GET"])
+@require_auth
 def get_settings():
-    user = get_user_from_token(get_auth_token())
-    if not user:
-        return jsonify({"success": False, "error": "Not authenticated"}), 401
+    user = request.user
     try:
         conn = get_db()
         with conn.cursor() as cursor:
@@ -453,10 +444,9 @@ def get_settings():
         return _server_error(e)
 
 @app.route("/settings", methods=["POST"])
+@require_auth
 def save_settings():
-    user = get_user_from_token(get_auth_token())
-    if not user:
-        return jsonify({"success": False, "error": "Not authenticated"}), 401
+    user = request.user
     data = request.get_json(force=True)
     allowed = ['theme','accent_color','camera_quality','text_size','haptic_feedback',
                'visual_cues','high_contrast','el_api_key','el_voice_id','el_model']
@@ -526,20 +516,16 @@ def auth_google():
                 cursor.execute("INSERT INTO users (email,name) VALUES (%s,%s)", (email, name))
                 cursor.execute("SELECT * FROM users WHERE email=%s", (email,))
                 user = cursor.fetchone()
-            token = secrets.token_hex(32)
-            exp = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
-            cursor.execute("INSERT INTO sessions (token,user_id,expires_at) VALUES (%s,%s,%s)", (token, user["id"], exp))
-            cursor.execute("INSERT IGNORE INTO user_settings (user_id) VALUES (%s)", (user["id"],))
+            token = _start_session(cursor, user["id"])
         conn.close()
         return jsonify({"success": True, "token": token, "user": _user_json(user)})
     except Exception as e:
         return _server_error(e)
 
 @app.route("/analytics", methods=["GET"])
+@require_auth
 def get_analytics():
-    user = get_user_from_token(get_auth_token())
-    if not user:
-        return jsonify({"success": False, "error": "Not authenticated"}), 401
+    user = request.user
     try:
         conn = get_db()
         with conn.cursor() as cursor:
@@ -1061,7 +1047,7 @@ def predict():
                 if len(frame.shape) == 3 and frame.shape[2] == 3:
                     frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
                 frames.append(frame)
-            except:
+            except Exception:
                 continue
         
         if not frames:
@@ -1142,7 +1128,7 @@ def tts_elevenlabs():
         if resp.status_code != 200:
             try:
                 err = resp.json().get("detail", {}).get("message", resp.text[:200])
-            except:
+            except Exception:
                 err = resp.text[:200]
             return jsonify({"success": False, "error": err}), resp.status_code
 
@@ -1176,7 +1162,7 @@ def stt_elevenlabs():
         if resp.status_code != 200:
             try:
                 err = resp.json().get("detail", {}).get("message", resp.text[:200])
-            except:
+            except Exception:
                 err = resp.text[:200]
             return jsonify({"success": False, "error": err}), resp.status_code
 
