@@ -1,24 +1,44 @@
-﻿flask
-flask-cors
-flask-socketio
-flask-limiter
+# ── Web / app framework ──────────────────────────────────────────────────────
+flask==3.1.3
+flask-cors==6.0.2
+flask-socketio==5.6.1
+flask-limiter==4.1.1
+
+# Security: the Socket.IO / async transitive deps are pinned to patched releases.
+# They are pulled in by flask-socketio; pinning them keeps rebuilds non-vulnerable.
+python-socketio==5.16.3   # CVE-2026-48804
+python-engineio==4.13.3   # CVE-2026-48802, CVE-2026-48809
+tornado==6.5.7            # CVE-2026-49853/54/55, GHSA-pw6j-qg29-8w7f
+setuptools>=78.1.1,<82    # CVE-2024-6345 (RCE), PYSEC-2025-49; <82 keeps torch happy
+
+# ── ML / inference ───────────────────────────────────────────────────────────
+# torch / torchvision / onnxruntime / numpy are intentionally LEFT UNPINNED:
+# the dev box uses CUDA builds on Python 3.11 (torch 2.11+cu128, onnxruntime-gpu,
+# numpy 2.4.x) while the Docker image (python:3.10-slim) installs the CPU wheels
+# from PyPI and needs an older numpy. Hard-pinning the local versions would break
+# the container build. Freeze these to exact versions only once the deploy
+# environment (Python version + CPU/GPU) is fixed.
 torch
 torchvision
-einops
-numpy
-opencv-python-headless
-opencv-contrib-python-headless
 onnxruntime
-tqdm
-Pillow
-gtts
-edge-tts
-gdown
-requests
-pymysql
-transformers
-sentencepiece
-decord
-azure-communication-email
-azure-identity
-azure-storage-blob
+numpy
+einops==0.8.2
+transformers==5.8.1
+sentencepiece==0.2.1
+decord==0.6.0
+
+# ── Media / vision ───────────────────────────────────────────────────────────
+opencv-python-headless==4.13.0.92
+opencv-contrib-python-headless==4.13.0.92
+Pillow==12.2.0
+
+# ── Utilities / external services ────────────────────────────────────────────
+tqdm==4.67.3
+gtts==2.5.4
+edge-tts==7.2.8
+gdown==6.0.0
+requests==2.33.1
+pymysql==1.2.0
+azure-communication-email==1.1.0
+azure-identity==1.25.3
+azure-storage-blob==12.29.0
