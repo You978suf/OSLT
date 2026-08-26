@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=5.0" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=5.1" />
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     /* Safety net: guarantee bright page even if main CSS fails to load */
@@ -613,6 +613,10 @@
                 <div class="op-top-name" id="op-top-name"></div>
                 <div class="op-top-en" id="op-top-en">English translation</div>
               </div>
+              <div class="voice-lang-switch" id="voice-lang-switch" role="group" aria-label="Voice language">
+                <button type="button" class="vls-btn is-active" data-lang="ar" aria-pressed="true" title="Speak in Arabic">ع</button>
+                <button type="button" class="vls-btn" data-lang="en" aria-pressed="false" title="Speak in English">EN</button>
+              </div>
               <button class="op-speak-btn" id="play-btn" aria-label="Speak current result">
                 <div class="play-waveform" id="play-waveform" aria-hidden="true">
                   <span class="pw-bar" style="--i:1"></span><span class="pw-bar" style="--i:2"></span>
@@ -934,7 +938,7 @@
     </div>
   </div>
 
-  <script src="{{ url_for('static', filename='script.js') }}?v=5.3"></script>
-  <script src="{{ url_for('static', filename='i18n.js') }}?v=1.4"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=5.5"></script>
+  <script src="{{ url_for('static', filename='i18n.js') }}?v=1.5"></script>
 </body>
 </html>

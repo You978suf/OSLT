@@ -99,6 +99,7 @@ const state = {
   hapticOn:       true,
   visualCuesOn:   true,
   highContrast:   false,
+  outputLang:     'ar',   // which language the result is spoken in ('ar' | 'en')
 
   // Auth
   user:           null,
@@ -493,6 +494,7 @@ async function loadSettingsFromDB() {
     if (s.el_api_key) { const el = document.getElementById('elApiKey'); if (el) el.value = s.el_api_key; }
     if (s.el_voice_id) { const sel = document.getElementById('elVoiceId'); if (sel) sel.value = s.el_voice_id; }
     if (s.el_model)   { const el = document.getElementById('elModel'); if (el) el.value = s.el_model; }
+    applyVoiceLang(s.output_lang || 'ar', { save: false });
   } catch(_) {}
 }
 
@@ -591,7 +593,7 @@ function renderHistoryList(items) {
     });
 
     el.append(badge, content, meta, delBtn);
-    el.addEventListener('click', () => speak(item.output_text, /[؀-ۿ]/.test(item.output_text) ? 'ar' : 'en'));
+    el.addEventListener('click', () => speak(item.output_text, outVoiceLang(item.output_text)));
     list.appendChild(el);
   });
 }
@@ -691,6 +693,50 @@ function flashRing() {
   setTimeout(() => { r.style.opacity = '0'; r.style.transform = 'scale(1)'; }, 500);
 }
 
+/* ── Voice language ────────────────────────────────────────────────────────
+   Both languages are always shown on screen (Arabic on the main line, English
+   underneath). This setting only decides which of the two gets SPOKEN.
+   Arabic is the default and is what every account starts on. */
+function voiceLang() { return state.outputLang === 'en' ? 'en' : 'ar'; }
+
+/* The text to speak for a prediction. Falls back to the other language when
+   the chosen one is missing - English is absent whenever the MT model failed. */
+function speakText(p) {
+  if (!p) return '';
+  return voiceLang() === 'en' ? (p.english || p.arabic || '') : (p.arabic || p.english || '');
+}
+
+/* Voice must follow the text actually chosen, not the preference: if English
+   was requested but unavailable we speak the Arabic fallback. */
+function outVoiceLang(text) { return /[؀-ۿ]/.test(text || '') ? 'ar' : 'en'; }
+
+/* Set an element's text and match its direction to the script it holds, so
+   an Arabic line inside an LTR page (or vice versa) still reads correctly. */
+function setLangText(el, text) {
+  if (!el) return;
+  el.textContent = text;
+  el.dir = /[؀-ۿ]/.test(text || '') ? 'rtl' : 'ltr';
+}
+
+/* Apply a voice-language choice: update state, the switch, and optionally
+   persist it. Called on load (save:false) and on user click (save:true). */
+function applyVoiceLang(lang, { save = true } = {}) {
+  state.outputLang = lang === 'en' ? 'en' : 'ar';
+  document.querySelectorAll('#voice-lang-switch .vls-btn').forEach(b => {
+    const on = b.dataset.lang === state.outputLang;
+    b.classList.toggle('is-active', on);
+    b.setAttribute('aria-pressed', on);
+  });
+  if (save) saveSettingsToDB({ output_lang: state.outputLang });
+}
+
+document.getElementById('voice-lang-switch')?.addEventListener('click', e => {
+  const btn = e.target.closest('.vls-btn');
+  if (!btn) return;
+  applyVoiceLang(btn.dataset.lang);
+  showToast(state.outputLang === 'en' ? '🔊 Voice: English' : '🔊 الصوت: العربية');
+});
+
 function showResult(preds) {
   if (!preds?.length) return;
   const top = preds[0];
@@ -698,13 +744,14 @@ function showResult(preds) {
   state.currentResult = top; state.lastPredTime = Date.now();
 
   TL_TEXT.classList.add('updating');
-  setTimeout(() => { TL_TEXT.textContent = top.arabic || top.english || '-'; TL_TEXT.classList.remove('updating'); }, 200);
+  setTimeout(() => { setLangText(TL_TEXT, top.arabic || top.english || '-'); TL_TEXT.classList.remove('updating'); }, 200);
 
   const nameEl = document.getElementById('op-top-name');
   const enEl   = document.getElementById('op-top-en');
   const dotEl  = document.getElementById('op-dot');
-  if (nameEl) { nameEl.textContent = top.arabic || '-'; nameEl.classList.remove('pop'); void nameEl.offsetWidth; nameEl.classList.add('pop'); }
-  if (enEl)   enEl.textContent = top.english || '';
+  if (nameEl) { setLangText(nameEl, top.arabic || '-'); nameEl.classList.remove('pop'); void nameEl.offsetWidth; nameEl.classList.add('pop'); }
+  // English always sits under the Arabic, whichever voice is selected.
+  if (enEl)   setLangText(enEl, top.english || '');
   if (dotEl)  { dotEl.classList.add('live'); setTimeout(() => dotEl.classList.remove('live'), 3000); }
 
   LIVE_IND.classList.add('active');
@@ -720,7 +767,8 @@ function showResult(preds) {
   saveTranslation('s2s', '', top.arabic || top.english || '', top.confidence || 0);
 
   if (state.isAutoSpeak) {
-    autoSpeakNow(top.arabic || top.english, /[؀-ۿ]/.test(top.arabic || '') ? 'ar' : 'en');
+    const t = speakText(top);
+    autoSpeakNow(t, outVoiceLang(t));
   }
 }
 
@@ -739,16 +787,16 @@ function renderTop5Panel(preds) {
     rank.textContent = '#' + (p.rank || i + 1);
 
     const words = document.createElement('div'); words.className = 'op-t5-words';
-    const name  = document.createElement('div'); name.className  = 'op-t5-name'; name.textContent = p.arabic  || '-';
-    const en    = document.createElement('div'); en.className    = 'op-t5-en';   en.textContent   = p.english || '';
+    const name  = document.createElement('div'); name.className  = 'op-t5-name'; setLangText(name, p.arabic || '-');
+    const en    = document.createElement('div'); en.className    = 'op-t5-en';   setLangText(en, p.english || '');
     words.append(name, en);
 
     const spk = document.createElement('button');
     spk.className = 'op-t5-spk'; spk.textContent = '🔊';
-    spk.setAttribute('aria-label', `Speak: ${p.arabic || p.english}`);
-    spk.addEventListener('click', ev => { ev.stopPropagation(); speak(row.dataset.arabic || row.dataset.english, 'ar'); });
+    spk.setAttribute('aria-label', `Speak: ${speakText(p)}`);
+    spk.addEventListener('click', ev => { ev.stopPropagation(); const t = speakText(p); speak(t, outVoiceLang(t)); });
     row.append(rank, words, spk);
-    row.addEventListener('click', () => speak(row.dataset.arabic || row.dataset.english, 'ar'));
+    row.addEventListener('click', () => { const t = speakText(p); speak(t, outVoiceLang(t)); });
     container.appendChild(row);
   });
 }
@@ -765,14 +813,14 @@ function renderHistPanel() {
     const el = document.createElement('div');
     el.className = 'op-hi-row'; el.dataset.arabic = h.arabic || '';
     const words = document.createElement('div'); words.style.flex = '1'; words.style.minWidth = '0';
-    const name  = document.createElement('div'); name.className = 'op-hi-name'; name.textContent = h.arabic || '-';
-    const en    = document.createElement('div'); en.className   = 'op-hi-en';   en.textContent   = h.english || '';
+    const name  = document.createElement('div'); name.className = 'op-hi-name'; setLangText(name, h.arabic || '-');
+    const en    = document.createElement('div'); en.className   = 'op-hi-en';   setLangText(en, h.english || '');
     words.append(name, en);
     const meta = document.createElement('div'); meta.className = 'op-hi-meta';
     const tm   = document.createElement('div'); tm.textContent = t;
     meta.append(tm);
     el.append(words, meta);
-    el.addEventListener('click', () => speak(el.dataset.arabic, 'ar'));
+    el.addEventListener('click', () => { const t = speakText(h); speak(t, outVoiceLang(t)); });
     list.appendChild(el);
   });
 }
@@ -885,7 +933,7 @@ async function uploadVideo(file) {
 }
 
 PLAY_BTN.addEventListener('click', () => {
-  const text=state.currentResult?.arabic||state.currentResult?.english||TL_TEXT.textContent;
+  const text=speakText(state.currentResult)||TL_TEXT.textContent;
   if (!text||text==='Waiting for sign input…') { showToast('ℹ️ No translation to speak yet.'); return; }
   if (state.isPlaying) {
     state.isPlaying=false; PLAY_BTN.classList.remove('playing');
@@ -894,7 +942,7 @@ PLAY_BTN.addEventListener('click', () => {
   } else {
     state.isPlaying=true; PLAY_BTN.classList.add('playing');
     if(PLAY_ICON)PLAY_ICON.textContent='■'; if(PLAY_WAVEFORM)PLAY_WAVEFORM.classList.add('active');
-    speak(text, /[؀-ۿ]/.test(text)?'ar':'en').finally(()=>{
+    speak(text, outVoiceLang(text)).finally(()=>{
       state.isPlaying=false; PLAY_BTN.classList.remove('playing');
       if(PLAY_ICON)PLAY_ICON.textContent='▶'; if(PLAY_WAVEFORM)PLAY_WAVEFORM.classList.remove('active');
     });

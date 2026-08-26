@@ -2585,3 +2585,47 @@ body.lang-ar {
 [dir="rtl"] .chat-widget { right: 20px; left: auto; }
 [dir="rtl"] .chat-panel { right: 0; left: auto; }
 
+
+/* ── Voice language switch (AR / EN) on the translation card ────────────────
+   Appended at the end on purpose: the legacy desktop rules further up the
+   file would otherwise win on specificity. Picks which language the result
+   is SPOKEN in; both languages are always shown on screen. */
+.voice-lang-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--border-subtle);
+  border: 1px solid var(--border-default);
+  align-self: center;
+  flex-shrink: 0;
+}
+.vls-btn {
+  min-width: 40px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: background .18s ease, color .18s ease;
+}
+.vls-btn:hover { color: var(--om-ink); }
+.vls-btn.is-active {
+  background: var(--om-blue);
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.18);
+}
+.vls-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+
+/* The card lays out: text | switch | speak button */
+.op-top-card { gap: 10px; }
+
+@media (max-width: 480px) {
+  .vls-btn { min-width: 34px; padding: 0 9px; font-size: 12px; }
+}
