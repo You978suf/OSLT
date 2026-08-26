@@ -31,6 +31,10 @@ WORDS_TXT = "data/Words.txt"
 LABEL_MAP_PATH = "data/label_map.json"
 LANDMARKS_DIR = "landmarks"
 
+# Arabic->English MT for the English output language (Helsinki-NLP, Apache-2.0).
+# Small (77M params, ~293 MB) and CPU-friendly: ~130 ms per sentence with beams=4.
+MT_MODEL_NAME = os.environ.get("MT_MODEL_AR_EN", "Helsinki-NLP/opus-mt-ar-en")
+
 
 def ensure_checkpoint(path=CHECKPOINT_PATH):
     """Download the UniSign checkpoint from MODEL_BLOB_URL if missing locally.
@@ -165,6 +169,79 @@ def _build_avatar_index():
 #  UniSign Model Manager
 # ═════════════════════════════════════════════════════════════════════════════
 
+class TranslationManager:
+    """Arabic -> English MT so the UI can offer an English output language.
+
+    Lazily loaded on the first English request: users who stay on the default
+    Arabic output never pay the load cost or the ~293 MB of RAM. Failures are
+    always non-fatal - the caller falls back to showing the Arabic text.
+    """
+    _model = None
+    _tokenizer = None
+    _tried = False
+    _lock = threading.Lock()
+    _cache = {}
+    _CACHE_MAX = 512
+
+    @classmethod
+    def _ensure_loaded(cls):
+        """Load the MT model once. Returns False if it is unavailable."""
+        if cls._model is not None:
+            return True
+        if cls._tried:            # already failed once - don't retry every request
+            return False
+        with cls._lock:
+            if cls._model is not None:
+                return True
+            if cls._tried:
+                return False
+            cls._tried = True
+            try:
+                from transformers import MarianMTModel, MarianTokenizer
+                print(f"[MT] Loading {MT_MODEL_NAME} ...")
+                cls._tokenizer = MarianTokenizer.from_pretrained(MT_MODEL_NAME)
+                cls._model = MarianMTModel.from_pretrained(MT_MODEL_NAME)
+                cls._model.eval()
+                # The shipped generation_config sets max_length=512; leaving it
+                # alongside our max_new_tokens logs a conflict warning on every
+                # single call. We bound length with max_new_tokens instead.
+                cls._model.generation_config.max_length = None
+                print("[MT] Arabic->English translator ready")
+                return True
+            except Exception as e:
+                print(f"[MT] WARNING: translator unavailable ({e}). "
+                      f"English output will fall back to Arabic text.")
+                cls._model = cls._tokenizer = None
+                return False
+
+    @classmethod
+    def translate(cls, text):
+        """Translate Arabic -> English. Returns "" if translation is impossible."""
+        text = (text or "").strip()
+        if not text:
+            return ""
+        if text in cls._cache:
+            return cls._cache[text]
+        if not cls._ensure_loaded():
+            return ""
+        try:
+            with torch.no_grad():
+                batch = cls._tokenizer([text], return_tensors="pt", padding=True)
+                out = cls._model.generate(**batch, max_new_tokens=64, num_beams=4)
+            en = cls._tokenizer.decode(out[0], skip_special_tokens=True).strip()
+            # Single signs come back as one word; Marian likes to end every
+            # segment with a period, which reads wrong on a one-word label.
+            if en.endswith(".") and " " not in text:
+                en = en[:-1]
+            if len(cls._cache) >= cls._CACHE_MAX:
+                cls._cache.clear()
+            cls._cache[text] = en
+            return en
+        except Exception as e:
+            print(f"[MT] Translation error: {e}")
+            return ""
+
+
 class UniSignManager:
     """Manages UniSign model loading and inference"""
     _model = None
@@ -254,9 +331,12 @@ class UniSignManager:
             cls._loaded = False
     
     @classmethod
-    def predict_from_pose(cls, pose_data, video_path=None, top_k=5):
+    def predict_from_pose(cls, pose_data, video_path=None, top_k=5, translate=True):
         """
         Run inference using pose data
+
+        translate: also produce an English rendering of the Arabic output.
+        On by default - the UI always shows both languages side by side.
         """
         if not cls._loaded or cls._model is None:
             return []
@@ -299,7 +379,7 @@ class UniSignManager:
                 "rank": 1,
                 "sign_id": "predicted",
                 "arabic": prediction,
-                "english": "",  # Can be translated if needed
+                "english": TranslationManager.translate(prediction) if translate else "",
                 "confidence": 95.0  # UniSign doesn't output confidence, using high value
             }]
             
@@ -419,6 +499,7 @@ class RealtimeProcessor:
         self.pose_buffer = []
         self.is_processing = False
         self.last_prediction = ""
+        self.translate = True    # results carry both Arabic and English
         self.wholebody = None
         self.processing_thread = None
         self.frame_queue = queue.Queue(maxsize=100)
@@ -526,7 +607,7 @@ class RealtimeProcessor:
             temp_video = self._create_temp_video()
             
             # Run inference using UniSign
-            prediction = UniSignManager.predict_from_pose(pose_data, temp_video)
+            prediction = UniSignManager.predict_from_pose(pose_data, temp_video, translate=self.translate)
             
             # Clean up temp video
             if os.path.exists(temp_video):

@@ -156,9 +156,17 @@ pip install -r requirements.txt
 pip install decord==0.6.0
 pip install ./unisign/demo/rtmlib-main
 
-# Downloads the small RTMPose pose-estimation models (one time)
+# Downloads the small RTMPose pose-estimation models AND the Arabic->English
+# translation model used by the English output language (one time, ~293 MB extra)
 python download_models.py
 ```
+
+> **English translation.** Every result now shows Arabic *and* English, with an
+> ع / EN switch on the translation card choosing which one is spoken (Arabic by
+> default). This needs the `Helsinki-NLP/opus-mt-ar-en` model fetched above; it
+> loads on the first translation (~3 s, ~300 MB RAM) and adds roughly 130 ms per
+> sign on CPU. If the model is missing the app still runs — the English line is
+> left blank and Arabic is spoken.
 
 ---
 
@@ -194,6 +202,17 @@ It will init the DB, load the 2.35 GB model (takes a minute), and serve on
 port 10000. From your PC browser, visit `http://YOUR_VPS_IP:10000` to confirm
 it loads. Then stop it with Ctrl+C and set it up as a service below.
 
+> **Security note for this direct test only:** here you are hitting the app
+> with **no** reverse proxy in front. The app defaults to
+> `TRUSTED_PROXY_HOPS=1` (it expects one proxy, i.e. Nginx, in front). To make
+> rate-limiting key on the real client IP during this proxy-less test, run:
+>
+> ```bash
+> TRUSTED_PROXY_HOPS=0 python app.py
+> ```
+>
+> Once it runs behind Nginx (step 10/11), leave it at the default `1`.
+
 ---
 
 ## 10. Run it as a service (stays up, auto-restarts)
@@ -215,6 +234,13 @@ ExecStart=/opt/jissr/venv/bin/python /opt/jissr/app.py
 Restart=always
 Environment=PORT=10000
 Environment=OLLAMA_MODEL=llama3.2:1b
+# Security: exactly ONE proxy (Nginx) sits in front, so trust 1 forwarded hop.
+# This makes rate-limiting key on the real client IP (not a spoofable header).
+# If you ever add another proxy/CDN in front of Nginx, increase this to match.
+Environment=TRUSTED_PROXY_HOPS=1
+# Leave ALLOWED_ORIGINS UNSET: the UI is bundled and served same-origin, so the
+# secure default (no cross-origin) is correct. Only set it (comma-separated
+# origins) if you host the frontend on a different domain.
 User=root
 
 [Install]
@@ -319,3 +345,12 @@ systemctl restart jissr
   llama3.2:1b` finished.
 - **Out of memory while loading model** → KVM 2 (8 GB) is enough for CPU
   inference; if you used a smaller plan, upgrade or add swap.
+- **Rate limiting blocks everyone at once / or never triggers** → the
+  `TRUSTED_PROXY_HOPS` count must equal the number of proxies in front of the
+  app. Direct (no proxy) = `0`; behind Nginx only = `1` (the default); behind a
+  CDN → Nginx = `2`. Too low lets clients spoof `X-Forwarded-For`; too high
+  makes every request look like it comes from the proxy IP.
+- **Browser console shows CORS errors** → only happens if you serve the UI from
+  a different domain than the API. Set `ALLOWED_ORIGINS` (comma-separated, e.g.
+  `https://app.example.com`) in the systemd unit and restart. For the bundled
+  same-origin UI, leave it unset.

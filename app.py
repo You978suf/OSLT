@@ -428,6 +428,13 @@ def clear_history():
 
 # ── Settings Routes ───────────────────────────────────────────────────────────
 
+# Which language the translation is spoken in (not the UI chrome, and not the
+# on-screen text - both languages are always displayed). Arabic is the default:
+# only an explicit "en" opts into the English voice.
+def _wants_english(lang):
+    return str(lang or "ar").strip().lower() in ("en", "eng", "en-us")
+
+
 @app.route("/settings", methods=["GET"])
 @require_auth
 def get_settings():
@@ -449,8 +456,12 @@ def save_settings():
     user = request.user
     data = request.get_json(force=True)
     allowed = ['theme','accent_color','camera_quality','text_size','haptic_feedback',
-               'visual_cues','high_contrast','el_api_key','el_voice_id','el_model']
+               'visual_cues','high_contrast','el_api_key','el_voice_id','el_model',
+               'output_lang']
     updates = {k: v for k, v in data.items() if k in allowed}
+    # Only 'ar' or 'en' may ever reach the column.
+    if 'output_lang' in updates:
+        updates['output_lang'] = 'en' if _wants_english(updates['output_lang']) else 'ar'
     try:
         if updates:
             set_clause = ", ".join(f"{k}=%s" for k in updates)

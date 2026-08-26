@@ -15,6 +15,9 @@
   // whitespace and trimming, so multi-line source text still resolves.
   const AR = {
     // ── Header / nav ─────────────────────────────────────────────
+    // ── Voice language ───────────────────────────────────────────
+    "English": "الإنجليزية",
+
     "Sign in": "تسجيل الدخول",
     "Get started": "ابدأ الآن",
     "Sign to Speech": "الإشارة إلى الكلام",

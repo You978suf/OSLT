@@ -135,10 +135,26 @@ def init_db():
                     el_api_key VARCHAR(255) DEFAULT '',
                     el_voice_id VARCHAR(255) DEFAULT '21m00Tcm4TlvDq8ikWAM',
                     el_model VARCHAR(255) DEFAULT 'eleven_multilingual_v2',
+                    output_lang VARCHAR(5) DEFAULT 'ar',
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """)
+
+            # Migration: add output_lang to installs created before it existed.
+            # MySQL has no ADD COLUMN IF NOT EXISTS, so check the catalog first.
+            cursor.execute("""
+                SELECT COUNT(*) AS n FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA=%s AND TABLE_NAME='user_settings'
+                  AND COLUMN_NAME='output_lang'
+            """, (db_name,))
+            row = cursor.fetchone()
+            has_col = (row['n'] if isinstance(row, dict) else row[0]) > 0
+            if not has_col:
+                cursor.execute(
+                    "ALTER TABLE user_settings "
+                    "ADD COLUMN output_lang VARCHAR(5) DEFAULT 'ar' AFTER el_model")
+                print("[DB] Migration: added user_settings.output_lang (default 'ar')")
         conn.close()
         print(f"[DB] MySQL database '{db_name}' initialized successfully")
     except Exception as e:

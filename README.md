@@ -18,6 +18,7 @@
 - **Validation:** ~35% baseline dev accuracy (benchmarked against the original Uni-Sign paper) and **73% acceptance** from a certified OSL interpreter.
 - **Real-time web app:** Flask + Socket.IO backend, MySQL storage, two-way translation.
 - **Two-way translation:** **Sign → Speech** (camera/video to spoken text) and **Speech → Sign** (speech/text to an animated signing avatar driven by recorded landmark frames).
+- **Bilingual output:** every translation is shown in **both Arabic and English** (Arabic on the main line, English beneath), using `Helsinki-NLP/opus-mt-ar-en` for Arabic→English. An **ع / EN** switch on the translation card picks which one is spoken — Arabic by default, English via `en-US-GuyNeural`.
 - **Free natural voice:** **Microsoft edge-tts** with an **Omani Arabic neural voice** (`ar-OM-AbdullahNeural`) — no API key required, with gTTS / browser speech as fallbacks and optional ElevenLabs.
 - **Built-in help assistant:** an in-app chatbot (Ollama `llama3.2`) that answers questions about how to use JISSR.
 
@@ -59,6 +60,7 @@ Help assistant:
 | Backend | Flask, Flask-SocketIO, Flask-CORS, Flask-Limiter |
 | Data | MySQL (PyMySQL) |
 | Speech (TTS) | Microsoft edge-tts (Omani neural voice), gTTS, browser SpeechSynthesis, optional ElevenLabs |
+| Translation (AR→EN) | Helsinki-NLP `opus-mt-ar-en` (MarianMT via transformers) |
 | Assistant | Ollama (`llama3.2`) help chatbot |
 | Cloud / infra | Azure (Container Apps, email, storage, blob), Docker |
 | Training | Kaggle T4 GPUs |
@@ -68,6 +70,7 @@ Help assistant:
 - **Sign → Speech** — translate OSL from the camera or an uploaded video; results are shown and can be spoken aloud (Auto-Speak).
 - **Speech → Sign** — speak (or type) Arabic/English and an animated avatar signs it, using recorded landmark frames (`.npy`) resolved from the vocabulary.
 - **Natural Omani voice** — free Microsoft edge-tts (`ar-OM-AbdullahNeural`) by default; a 🔊 **Voice API** dialog lets a user add an optional ElevenLabs key.
+- **Voice language** — an **ع / EN** switch on the translation card chooses which language is spoken aloud; both languages are always displayed. The choice is saved per account (`user_settings.output_lang`, default `'ar'`). If the translation model is unavailable, English is simply omitted and Arabic is spoken.
 - **Help chatbot** — a floating assistant (Ollama `llama3.2`) that answers how-to questions about the app.
 - **Accounts & history** — email/password or Google sign-in, password reset by email, per-user translation history.
 - **Security** — HttpOnly/Secure/SameSite session cookies, PBKDF2 password hashing, per-route rate limiting; large model and landmark files are downloaded from Azure Blob at runtime (never committed).
