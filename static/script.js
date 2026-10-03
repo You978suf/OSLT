@@ -985,7 +985,8 @@ function switchInputTab(tab) {
 MIC_BTN.addEventListener('click', () => { if(state.isMicRecording)stopMicSTT(); else startMicSTT(); });
 
 async function startMicSTT() {
-  if('webkitSpeechRecognition' in window||'SpeechRecognition' in window){ startBrowserSTT(); return; }
+  // Always record and transcribe on our own server (/stt-local). Chrome's built-in
+  // SpeechRecognition streams to Google and fails with "network" when that is blocked.
   try {
     const stream=await navigator.mediaDevices.getUserMedia({audio:true});
     const mimes=['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/mp4'];
@@ -993,7 +994,7 @@ async function startMicSTT() {
     state.mediaRec=new MediaRecorder(stream,mime?{mimeType:mime}:{});
     state.recChunks=[];
     state.mediaRec.ondataavailable=e=>state.recChunks.push(e.data);
-    state.mediaRec.onstop=sendToElevenLabsSTT;
+    state.mediaRec.onstop=sendRecordingToSTT;
     state.mediaRec.start(); state.isMicRecording=true; setMicUI(true);
   } catch(e){ if(MIC_STATUS)MIC_STATUS.textContent='Error: '+e.message; }
 }
@@ -1010,34 +1011,44 @@ function setMicUI(on) {
   if(MIC_STATUS)MIC_STATUS.textContent=on?'Listening…':'Tap to listen';
 }
 
-function startBrowserSTT() {
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  const rec=new SR();
-  rec.lang=(document.getElementById('sttLang')?.value==='ara')?'ar-OM':'en-US';
-  rec.continuous=false; rec.interimResults=true;
-  setSttBox('Listening…');
-  rec.onresult=e=>{ const t=[...e.results].map(r=>r[0].transcript).join(''); setSttBox(t); if(e.results[e.results.length-1].isFinal)state.sttText=t; };
-  rec.onerror=e=>setSttBox('Error: '+e.error);
-  rec.onend=()=>{ state.isMicRecording=false; setMicUI(false); if(MIC_STATUS)MIC_STATUS.textContent='Tap to listen'; const useBtn=document.getElementById('btnUseText'); if(useBtn)useBtn.disabled=!state.sttText; };
-  rec.start(); state.isMicRecording=true; setMicUI(true);
-  if(MIC_STATUS)MIC_STATUS.textContent='Listening… (speak now)';
-}
-
-async function sendToElevenLabsSTT() {
+async function sendRecordingToSTT() {
   const apiKey=document.getElementById('elApiKey')?.value.trim();
   const lang=document.getElementById('sttLang')?.value||'eng';
-  if(!apiKey&&!state.elServer){setSttBox('Add an ElevenLabs API Key (🔊 Voice API in the header)');if(MIC_STATUS)MIC_STATUS.textContent='API Key required';return;}
   const mime=state.recChunks[0]?.type||'audio/webm';
   const blob=new Blob(state.recChunks,{type:mime});
   const ext=mime.includes('mp4')?'rec.mp4':mime.includes('ogg')?'rec.ogg':'rec.webm';
-  const fd=new FormData();
-  fd.append('audio',blob,ext); fd.append('api_key',apiKey); fd.append('lang',lang);
+
+  const post=async(url,extra)=>{
+    const fd=new FormData();
+    fd.append('audio',blob,ext); fd.append('lang',lang);
+    if(extra) fd.append('api_key',extra);
+    const r=await fetch(`${API}${url}`,{method:'POST',headers:authHeader(),body:fd});
+    return r.json();
+  };
+
+  setSttBox('Transcribing…');
+  // 1. Local whisper on our own server - no API key, no external request.
   try {
-    const r=await fetch(`${API}/stt-elevenlabs`,{method:'POST',headers:authHeader(),body:fd});
-    const d=await r.json();
-    if(d.success){state.sttText=d.transcript;setSttBox(d.transcript);const useBtn=document.getElementById('btnUseText');if(useBtn)useBtn.disabled=false;}
-    else setSttBox('Error: '+d.error);
-  } catch{setSttBox('Connection error');}
+    const d=await post('/stt-local');
+    if(d.success && d.transcript){ acceptSTT(d.transcript); return; }
+  } catch(_) {}
+  // 2. ElevenLabs, only if the user supplied a key.
+  if(apiKey||state.elServer){
+    try {
+      const d=await post('/stt-elevenlabs',apiKey);
+      if(d.success){ acceptSTT(d.transcript); return; }
+      setSttBox('Error: '+d.error);
+      if(MIC_STATUS)MIC_STATUS.textContent='Tap to listen';
+      return;
+    } catch(_) {}
+  }
+  setSttBox('Could not transcribe. Try again, or type the text instead.');
+  if(MIC_STATUS)MIC_STATUS.textContent='Tap to listen';
+}
+
+function acceptSTT(text){
+  state.sttText=text; setSttBox(text);
+  const useBtn=document.getElementById('btnUseText'); if(useBtn)useBtn.disabled=false;
   if(MIC_STATUS)MIC_STATUS.textContent='Tap to listen';
 }
 

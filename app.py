@@ -4,6 +4,7 @@ import tempfile
 import os
 import sys
 import secrets
+import threading
 import hashlib
 import pymysql
 from pathlib import Path
@@ -1180,6 +1181,97 @@ def stt_elevenlabs():
         transcript = resp.json().get("text", "")
         return jsonify({"success": True, "transcript": transcript})
 
+    except Exception as e:
+        return _server_error(e)
+
+# ── Local STT (faster-whisper) ────────────────────────────────────────────────
+# Runs on this server: no API key, no account, no outbound request. Replaces the
+# ElevenLabs mic path for browsers without the Web Speech API (Firefox).
+# Model is loaded once, lazily, on first use.
+WHISPER_MODEL   = os.environ.get("WHISPER_MODEL", "small")
+WHISPER_DEVICE  = os.environ.get("WHISPER_DEVICE", "auto")     # auto | cpu | cuda
+WHISPER_COMPUTE = os.environ.get("WHISPER_COMPUTE", "")        # blank = pick per device
+_whisper = None
+_whisper_lock = threading.Lock()
+
+
+def _load_whisper():
+    """Lazily build the shared WhisperModel. Returns None if unavailable."""
+    global _whisper
+    if _whisper is not None:
+        return _whisper
+    with _whisper_lock:
+        if _whisper is not None:
+            return _whisper
+        try:
+            # Windows: CTranslate2 needs cuBLAS/cuDNN on the DLL search path.
+            # torch ships them, so point at its lib folder before importing.
+            if sys.platform == "win32":
+                try:
+                    import torch as _t
+                    _lib = os.path.join(os.path.dirname(_t.__file__), "lib")
+                    if os.path.isdir(_lib):
+                        os.add_dll_directory(_lib)
+                except Exception:
+                    pass
+
+            device = WHISPER_DEVICE
+            if device == "auto":
+                try:
+                    import torch as _t
+                    device = "cuda" if _t.cuda.is_available() else "cpu"
+                except Exception:
+                    device = "cpu"
+            compute = WHISPER_COMPUTE or ("float16" if device == "cuda" else "int8")
+
+            from faster_whisper import WhisperModel
+            print(f"[STT] loading faster-whisper '{WHISPER_MODEL}' on {device} ({compute})…")
+            try:
+                _whisper = WhisperModel(WHISPER_MODEL, device=device, compute_type=compute)
+            except Exception as e:
+                if device == "cuda":
+                    print(f"[STT] GPU load failed ({e}); falling back to CPU")
+                    _whisper = WhisperModel(WHISPER_MODEL, device="cpu", compute_type="int8")
+                else:
+                    raise
+            print("[STT] model ready")
+        except Exception as e:
+            print(f"[STT] unavailable: {type(e).__name__}: {e}")
+            _whisper = None
+    return _whisper
+
+
+@app.route("/stt-local", methods=["POST"])
+@require_auth
+def stt_local():
+    try:
+        audio = request.files.get("audio")
+        if not audio:
+            return jsonify({"success": False, "error": "No audio file"}), 400
+
+        model = _load_whisper()
+        if model is None:
+            return jsonify({"success": False,
+                            "error": "Speech recognition is not available on this server"}), 503
+
+        # 'ara'/'eng' come from the #sttLang select; whisper wants ISO-639-1.
+        lang = (request.form.get("lang") or "ara").strip()
+        code = "ar" if lang.startswith("ar") else "en"
+
+        suffix = Path(audio.filename or "rec.webm").suffix or ".webm"
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+        try:
+            audio.save(tmp)
+            tmp.close()
+            segments, _info = model.transcribe(tmp.name, language=code, beam_size=5)
+            transcript = "".join(seg.text for seg in segments).strip()
+        finally:
+            try:
+                os.unlink(tmp.name)
+            except OSError:
+                pass
+
+        return jsonify({"success": True, "transcript": transcript})
     except Exception as e:
         return _server_error(e)
 

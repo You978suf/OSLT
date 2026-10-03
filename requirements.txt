@@ -36,6 +36,10 @@ Pillow==12.2.0
 tqdm==4.67.3
 gtts==2.5.4
 edge-tts==7.2.8
+
+# Local speech-to-text: runs on our own server, no API key.
+# CPU uses int8 (fits a small VPS); CUDA is used automatically when present.
+faster-whisper==1.2.1
 gdown==6.0.0
 requests==2.33.1
 pymysql==1.2.0
