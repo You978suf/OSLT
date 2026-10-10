@@ -71,10 +71,8 @@ const MIC_BTN       = document.getElementById('mic-btn');
 const MIC_STATUS    = document.getElementById('mic-status');
 const WAVEFORM      = document.getElementById('waveform');
 const HEARD_TEXT    = document.getElementById('heard-text');
-const AVATAR_FIG    = document.getElementById('avatar-figure');
 const AV_STATUS     = document.getElementById('avatar-status');
 const AV_STATUS_TXT = document.getElementById('av-status-text');
-const AV_HEAD       = document.getElementById('av-head');
 const SPEED_PILLS   = document.querySelectorAll('.speed-pill');
 
 const THEME_SEG     = document.getElementById('theme-seg');
@@ -1100,9 +1098,8 @@ async function startSigning() {
     playNextSign();
     saveTranslation('sp2s', text, text, 0);
   } catch {
-    showToast('⚠️ Server unavailable - using CSS avatar');
+    showToast('⚠️ Server unavailable.');
     if(btnSign)btnSign.disabled=false;
-    animateAvatarFallback(text);
   }
 }
 
@@ -1143,8 +1140,6 @@ function drawHandProj(hand,proj,color){if(!hand||hand.length<21)return;avCtx.str
 function drawPlaceholder(word){if(!avCtx||!avCanvas)return;resizeAvCanvas();const W=avCanvas.width,H=avCanvas.height;avCtx.clearRect(0,0,W,H);avCtx.fillStyle='#040810';avCtx.fillRect(0,0,W,H);avCtx.fillStyle='rgba(100,116,139,.5)';avCtx.font='bold 48px "Plus Jakarta Sans",sans-serif';avCtx.textAlign='center';avCtx.fillText(word,W/2,H/2);avCtx.font='14px "DM Sans",sans-serif';avCtx.fillStyle='rgba(100,116,139,.4)';avCtx.fillText('No sign available',W/2,H/2+40);}
 function renderWordQueue(seq,activeIdx){const q=document.getElementById('wordQueue');if(!q)return;q.innerHTML='';seq.forEach((item,i)=>{const sp=document.createElement('span');const base='padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;border:1px solid;margin:2px;display:inline-block;transition:all .3s;';if(i===activeIdx)sp.style.cssText=base+'background:var(--color-accent-dim);border-color:var(--color-accent);color:var(--color-accent);transform:scale(1.05);';else if(i<activeIdx)sp.style.cssText=base+'opacity:.4;border-color:var(--glass-border);color:var(--text-muted);';else sp.style.cssText=base+'background:var(--glass-bg);border-color:var(--glass-border);color:var(--text-secondary);'+(item.has_anim?'':'border-style:dashed;');sp.textContent=item.word;if(!item.has_anim)sp.title='No sign available';q.appendChild(sp);});}
 
-const avatarExpressions=['🙂','🤔','😊','🙂','😐','😊'];let avatarExpIdx=0;
-function animateAvatarFallback(text){if(AV_STATUS)AV_STATUS.classList.add('active');if(AV_STATUS_TXT)AV_STATUS_TXT.textContent='Signing…';AVATAR_FIG.classList.add('signing');AV_HEAD.textContent=avatarExpressions[avatarExpIdx++%avatarExpressions.length];const dur=Math.min(Math.max(text.split(' ').length*500,2000),8000);setTimeout(()=>{AVATAR_FIG.classList.remove('signing');if(AV_STATUS)AV_STATUS.classList.remove('active');if(AV_STATUS_TXT)AV_STATUS_TXT.textContent='Done';AV_HEAD.textContent='🙂';},dur);}
 
 SPEED_PILLS.forEach(pill=>pill.addEventListener('click',()=>{SPEED_PILLS.forEach(p=>{p.classList.remove('active');p.setAttribute('aria-pressed','false');});pill.classList.add('active');pill.setAttribute('aria-pressed','true');state.playbackSpeed=parseFloat(pill.dataset.speed);const el=document.getElementById('avSpeed');if(el)el.value=state.playbackSpeed;showToast(`⏱ Speed: ${pill.textContent}`);}));
 
