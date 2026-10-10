@@ -1241,6 +1241,57 @@ def _load_whisper():
     return _whisper
 
 
+# ── Remote STT (Omani Arabic transcription API, stt.runbit.om) ────────────────
+# Async job API: POST /transcribe (WAV only) → job_id, then poll /jobs/{id}.
+# Configure via config.json / env: RUNBIT_STT_URL, RUNBIT_STT_API_KEY.
+RUNBIT_STT_TIMEOUT = 90   # seconds to wait for a job before giving up
+
+
+def _runbit_cfg():
+    cfg = load_config()
+    url = (cfg.get("RUNBIT_STT_URL") or os.environ.get("RUNBIT_STT_URL") or "https://stt.runbit.om").strip().rstrip("/")
+    key = (cfg.get("RUNBIT_STT_API_KEY") or os.environ.get("RUNBIT_STT_API_KEY") or "").strip()
+    return url, key
+
+
+def _to_wav16k(path):
+    """Decode any browser recording (webm/ogg/mp4) to 16 kHz mono PCM WAV bytes."""
+    import wave
+    from faster_whisper import decode_audio
+    pcm = decode_audio(path, sampling_rate=16000)
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(16000)
+        w.writeframes((np.clip(pcm, -1.0, 1.0) * 32767).astype("<i2").tobytes())
+    return buf.getvalue()
+
+
+def _transcribe_runbit(path):
+    """Returns the transcript, or raises RuntimeError with a short reason."""
+    import time
+    import requests as req
+    url, key = _runbit_cfg()
+    headers = {"X-API-Key": key}
+    resp = req.post(f"{url}/transcribe", headers=headers,
+                    files={"file": ("audio.wav", _to_wav16k(path), "audio/wav")}, timeout=30)
+    if resp.status_code not in (200, 202):
+        raise RuntimeError(f"submit failed ({resp.status_code}): {resp.text[:200]}")
+    job_id = resp.json()["job_id"]
+
+    deadline = time.monotonic() + RUNBIT_STT_TIMEOUT
+    while time.monotonic() < deadline:
+        time.sleep(1)
+        job = req.get(f"{url}/jobs/{job_id}", headers=headers, timeout=15).json()
+        status = job.get("status")
+        if status == "done":
+            return (job.get("text") or "").strip()
+        if status not in ("queued", "processing"):
+            raise RuntimeError(job.get("error") or f"job {status}")
+    raise RuntimeError("timed out waiting for transcription")
+
+
 @app.route("/stt-local", methods=["POST"])
 @require_auth
 def stt_local():
@@ -1248,6 +1299,26 @@ def stt_local():
         audio = request.files.get("audio")
         if not audio:
             return jsonify({"success": False, "error": "No audio file"}), 400
+
+        # Arabic goes to the Omani Arabic API when a key is configured;
+        # English (or an API failure) falls through to local whisper.
+        lang = (request.form.get("lang") or "ara").strip()
+        if lang.startswith("ar") and _runbit_cfg()[1]:
+            suffix = Path(audio.filename or "rec.webm").suffix or ".webm"
+            tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+            try:
+                audio.save(tmp)
+                tmp.close()
+                transcript = _transcribe_runbit(tmp.name)
+                return jsonify({"success": True, "transcript": transcript})
+            except Exception as e:
+                print(f"[STT] runbit failed, falling back to whisper: {type(e).__name__}: {e}")
+                audio.stream.seek(0)
+            finally:
+                try:
+                    os.unlink(tmp.name)
+                except OSError:
+                    pass
 
         model = _load_whisper()
         if model is None:
@@ -1539,6 +1610,31 @@ def handle_frame(data):
 
 # Initialize database
 init_db()
+
+# ── Precomputed avatar animation clips ────────────────────────────────────────
+# Solved offline by `python -m avatar.build`; this only serves them. Reuses the
+# limiter, CORS allowlist and auth decorator already configured above rather than
+# standing up a second set.
+try:
+    from avatar.api import assert_production_safe, create_blueprint
+    from avatar.security import install_security_headers
+    from avatar.catalogue import Catalogue
+    from avatar.clip import FileClipStore
+
+    assert_production_safe(app)
+    install_security_headers(app)
+    _CLIPS_ROOT = Path(os.environ.get("AVATAR_CLIPS_DIR", "data/avatar_clips"))
+    _clip_store = FileClipStore(_CLIPS_ROOT)
+    app.register_blueprint(create_blueprint(
+        clips_root=_CLIPS_ROOT,
+        catalogue=Catalogue.load(WORDS_TXT, _clip_store),
+        auth=require_auth,
+        limiter=limiter,
+    ))
+    print(f"[avatar] serving {len(_clip_store.ids())} precomputed clips from {_CLIPS_ROOT}")
+except FileNotFoundError as _exc:
+    # No vocabulary or no clips built yet: the rest of the app is unaffected.
+    print(f"[avatar] clip endpoint disabled: {_exc}")
 
 # Download avatar landmark frames FIRST so they claim disk space before the
 # large checkpoint + mt5 translation model are fetched. The 8 GiB ephemeral
