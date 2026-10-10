@@ -1611,31 +1611,6 @@ def handle_frame(data):
 # Initialize database
 init_db()
 
-# ── Precomputed avatar animation clips ────────────────────────────────────────
-# Solved offline by `python -m avatar.build`; this only serves them. Reuses the
-# limiter, CORS allowlist and auth decorator already configured above rather than
-# standing up a second set.
-try:
-    from avatar.api import assert_production_safe, create_blueprint
-    from avatar.security import install_security_headers
-    from avatar.catalogue import Catalogue
-    from avatar.clip import FileClipStore
-
-    assert_production_safe(app)
-    install_security_headers(app)
-    _CLIPS_ROOT = Path(os.environ.get("AVATAR_CLIPS_DIR", "data/avatar_clips"))
-    _clip_store = FileClipStore(_CLIPS_ROOT)
-    app.register_blueprint(create_blueprint(
-        clips_root=_CLIPS_ROOT,
-        catalogue=Catalogue.load(WORDS_TXT, _clip_store),
-        auth=require_auth,
-        limiter=limiter,
-    ))
-    print(f"[avatar] serving {len(_clip_store.ids())} precomputed clips from {_CLIPS_ROOT}")
-except FileNotFoundError as _exc:
-    # No vocabulary or no clips built yet: the rest of the app is unaffected.
-    print(f"[avatar] clip endpoint disabled: {_exc}")
-
 # Download avatar landmark frames FIRST so they claim disk space before the
 # large checkpoint + mt5 translation model are fetched. The 8 GiB ephemeral
 # disk can't hold everything; the avatar (Speech -> Sign) is independent of the
